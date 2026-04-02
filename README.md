@@ -1,3 +1,4 @@
+# macOS video wallpaper app built with Swift
 # SakuraWallpaper
 
 A lightweight video and image wallpaper application for macOS.

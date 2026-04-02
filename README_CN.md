@@ -1,3 +1,4 @@
+# macOS video wallpaper app built with Swift
 # SakuraWallpaper
 
 macOS 轻量级视频和图片壁纸应用。
