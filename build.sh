@@ -61,8 +61,7 @@ echo "Done! App: $APP_DIR"
 if [ "$1" = "dmg" ]; then
     echo "Creating DMG..."
     DMG_TMP="dmg_tmp"
-    DMG_BG="dmg_background.png"
-    rm -rf "$DMG_TMP" "$APP_NAME.dmg" "$APP_NAME_rw.dmg" "$DMG_BG"
+    rm -rf "$DMG_TMP" "$APP_NAME.dmg"
 
     # 生成背景图（箭头 + 提示文字）
     python3 << PYEOF
@@ -76,53 +75,28 @@ try:
 except:
     font = ImageFont.load_default()
 draw.text((170, 180), "拖拽到此处安装", fill=(140, 140, 140), font=font)
-img.save("$DMG_BG")
+img.save("bg.png")
 PYEOF
 
-    # 准备 DMG 内容
-    mkdir -p "$DMG_TMP/.background"
+    # 准备内容
+    mkdir -p "$DMG_TMP"
     cp -R "$APP_DIR" "$DMG_TMP/"
-    cp AppIcon.icns "$DMG_TMP/.VolumeIcon.icns"
-    cp "$DMG_BG" "$DMG_TMP/.background/bg.png"
-    ln -s /Applications "$DMG_TMP/Applications"
 
-    # 卸载可能残留的同名卷
-    hdiutil detach "/Volumes/$APP_NAME" 2>/dev/null
-    hdiutil detach "/Volumes/$APP_NAME 1" 2>/dev/null
+    # 用 create-dmg 打包（需 brew install create-dmg）
+    create-dmg \
+      --volname "$APP_NAME" \
+      --volicon "AppIcon.icns" \
+      --background "bg.png" \
+      --window-pos 100 100 \
+      --window-size 500 320 \
+      --icon-size 80 \
+      --icon "$APP_NAME.app" 130 160 \
+      --hide-extension "$APP_NAME.app" \
+      --app-drop-link 360 160 \
+      "$APP_NAME.dmg" \
+      "$DMG_TMP" 2>&1 | grep -v "hdiutil does not support"
 
-    # 创建可写 DMG
-    hdiutil create -volname "$APP_NAME" -srcfolder "$DMG_TMP" -ov -format UDRW -fs HFS+ "${APP_NAME}_rw.dmg" > /dev/null 2>&1
-
-    # 挂载并设置 Finder 窗口布局
-    MOUNT_POINT=$(hdiutil attach "${APP_NAME}_rw.dmg" -nobrowse -noverify 2>&1 | grep -o '/Volumes/.*')
-    SetFile -a C "$MOUNT_POINT"
-    SetFile -c icnC "$MOUNT_POINT/.VolumeIcon.icns"
-    osascript << EOF
-tell application "Finder"
-    tell disk "$APP_NAME"
-        open
-        set current view of container window to icon view
-        set toolbar visible of container window to false
-        set statusbar visible of container window to false
-        set the bounds of container window to {100, 100, 600, 420}
-        try
-            set background picture of container window to file ".background:bg.png"
-        end try
-        set position of item "$APP_NAME.app" of container window to {130, 160}
-        set position of item "Applications" of container window to {360, 160}
-        close
-        open
-        update without registering applications
-        delay 1
-        close
-    end tell
-end tell
-EOF
-    hdiutil detach "$MOUNT_POINT" > /dev/null 2>&1
-
-    # 转换为压缩只读 DMG
-    hdiutil convert "${APP_NAME}_rw.dmg" -format UDZO -o "$APP_NAME.dmg" > /dev/null 2>&1
-    rm -f "${APP_NAME}_rw.dmg" "$DMG_BG"
+    rm -f bg.png
     rm -rf "$DMG_TMP"
     echo "Done! DMG: $APP_NAME.dmg"
 fi
