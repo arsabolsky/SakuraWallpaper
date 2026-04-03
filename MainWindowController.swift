@@ -65,8 +65,15 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         contentView.addSubview(createFooter())
 
         NotificationCenter.default.addObserver(self, selector: #selector(rotationHappened), name: WallpaperManager.didRotateNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(statusChanged), name: WallpaperManager.playbackStateDidChangeNotification, object: nil)
 
         updateUI()
+    }
+
+    @objc private func statusChanged() {
+        DispatchQueue.main.async {
+            self.updateUI()
+        }
     }
 
     @objc private func rotationHappened() {
@@ -165,9 +172,14 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
     }
 
     @objc private func applyToAllScreens() {
-        guard let url = wallpaperManager.currentFile else { return }
-        wallpaperManager.setWallpaper(url: url)
-        SettingsManager.shared.wallpaperPath = url.path
+        if SettingsManager.shared.isFolderMode {
+            if let path = SettingsManager.shared.folderPath {
+                wallpaperManager.setFolder(url: URL(fileURLWithPath: path))
+            }
+        } else if let url = wallpaperManager.currentFile {
+            wallpaperManager.setWallpaper(url: url)
+            SettingsManager.shared.wallpaperPath = url.path
+        }
         updateUI()
     }
 

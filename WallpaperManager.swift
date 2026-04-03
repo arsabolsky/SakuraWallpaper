@@ -14,6 +14,7 @@ class WallpaperManager {
     private var rotationTimer: Timer?
 
     static let didRotateNotification = Notification.Name("WallpaperManagerDidRotate")
+    static let playbackStateDidChangeNotification = Notification.Name("WallpaperManagerPlaybackStateDidChange")
 
     var currentFile: URL? {
         currentFiles.values.first
@@ -70,11 +71,13 @@ class WallpaperManager {
             if isPausedInternally {
                 isPausedInternally = false
                 if !isPaused { resumeAll() }
+                NotificationCenter.default.post(name: WallpaperManager.playbackStateDidChangeNotification, object: nil)
             }
         } else {
             if !isPausedInternally {
                 isPausedInternally = true
                 pauseAll()
+                NotificationCenter.default.post(name: WallpaperManager.playbackStateDidChangeNotification, object: nil)
             }
         }
     }
@@ -303,14 +306,18 @@ class WallpaperManager {
         pauseAll()
         stopKeepVisibleTimer()
         players.values.forEach { $0.window?.orderOut(nil) }
+        NotificationCenter.default.post(name: WallpaperManager.playbackStateDidChangeNotification, object: nil)
     }
 
     func resume() {
         guard isActive else { return }
         isPaused = false
-        showAll()
-        resumeAll()
+        if !isPausedInternally {
+            resumeAll()
+            showAll()
+        }
         startKeepVisibleTimer()
+        NotificationCenter.default.post(name: WallpaperManager.playbackStateDidChangeNotification, object: nil)
     }
 
     func setWallpaper(url: URL) {
