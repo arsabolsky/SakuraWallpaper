@@ -44,6 +44,8 @@
 // Menu
 "menu.open" = "Open SakuraWallpaper";
 "menu.status" = "Status: %@";
+"menu.status.rotating" = "Rotating: %@";
+"menu.status.file" = "File: %@";
 "menu.pause" = "Pause";
 "menu.resume" = "Resume";
 "menu.pauseAll" = "Pause Playback";

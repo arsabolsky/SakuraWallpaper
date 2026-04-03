@@ -575,7 +575,8 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
             if isFolderMode {
                 let current = wallpaperManager.currentPlaylistIndex + 1
                 let total = wallpaperManager.playlist.count
-                fileNameLabel.stringValue = "\(filename) (\(current)/\(total))"
+                let shuffleIcon = SettingsManager.shared.isShuffleMode ? "🔀 " : ""
+                fileNameLabel.stringValue = "\(shuffleIcon)\(filename) (\(current)/\(total))"
                 fileTypeLabel.stringValue = "ui.folderMode".localized
             } else {
                 fileNameLabel.stringValue = filename
@@ -663,7 +664,13 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
     }
     func collectionView(_ collectionView: NSCollectionView, didSelectItemsAt indexPaths: Set<IndexPath>) {
         if let indexPath = indexPaths.first {
+            // Stop rotation when user manually picks a wallpaper
+            if SettingsManager.shared.isRotationEnabled {
+                SettingsManager.shared.isRotationEnabled = false
+                wallpaperManager.startRotationTimer() // This will stop it because of the guard
+            }
             wallpaperManager.selectPlaylistItem(at: indexPath.item)
+            updateUI()
         }
     }
 

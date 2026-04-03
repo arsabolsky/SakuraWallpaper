@@ -10,6 +10,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var aboutWindow: AboutWindowController?
     var pauseItem: NSMenuItem!
     var autoPauseItem: NSMenuItem!
+    var nextMenuItem: NSMenuItem!
     var screenPauseMenu: NSMenu!
     var languageMenu: NSMenu!
 
@@ -58,13 +59,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusMenuItem.isEnabled = false
         menu.addItem(statusMenuItem)
 
-        pauseItem = NSMenuItem(title: "menu.pauseAll".localized, action: #selector(togglePause), keyEquivalent: "p")
-        pauseItem.target = self
-        menu.addItem(pauseItem)
+        autoPauseItem = NSMenuItem(title: "menu.autoPause".localized, action: #selector(toggleAutoPause), keyEquivalent: "")
+        autoPauseItem.target = self
+        menu.addItem(autoPauseItem)
 
-        let nextItem = NSMenuItem(title: "menu.nextWallpaper".localized, action: #selector(nextWallpaper), keyEquivalent: "n")
-        nextItem.target = self
-        menu.addItem(nextItem)
+        nextMenuItem = NSMenuItem(title: "menu.nextWallpaper".localized, action: #selector(nextWallpaper), keyEquivalent: "n")
+        nextMenuItem.target = self
+        menu.addItem(nextMenuItem)
 
         let stopItem = NSMenuItem(title: "menu.stopWallpaper".localized, action: #selector(stopWallpaper), keyEquivalent: "s")
         stopItem.target = self
@@ -300,12 +301,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let statusStr: String
         if !wallpaperManager.isActive {
             statusStr = "ui.notSet".localized
-        } else if wallpaperManager.isPaused || (SettingsManager.shared.pauseWhenInvisible && wallpaperManager.isPausedInternally) {
-            statusStr = "ui.paused".localized
+            statusMenuItem.title = "menu.status".localized(statusStr)
         } else {
-            statusStr = "ui.playing".localized
+            let isPausedState = wallpaperManager.isPaused || (SettingsManager.shared.pauseWhenInvisible && wallpaperManager.isPausedInternally)
+            let stateLabel = isPausedState ? "ui.paused".localized : "ui.playing".localized
+            
+            if SettingsManager.shared.isFolderMode, let folderPath = SettingsManager.shared.folderPath {
+                let folderName = (folderPath as NSString).lastPathComponent
+                statusMenuItem.title = "menu.status.rotating".localized(folderName) + " (\(stateLabel))"
+            } else if let path = SettingsManager.shared.wallpaperPath {
+                let fileName = (path as NSString).lastPathComponent
+                statusMenuItem.title = "menu.status.file".localized(fileName) + " (\(stateLabel))"
+            } else {
+                statusMenuItem.title = "menu.status".localized(stateLabel)
+            }
         }
-        statusMenuItem.title = "menu.status".localized(statusStr)
     }
 
     @objc func showAbout() {
@@ -341,5 +351,11 @@ extension AppDelegate: NSMenuDelegate {
         rebuildLanguageMenu()
         updatePauseItem()
         updateAutoPauseItem()
+        
+        if SettingsManager.shared.isFolderMode {
+            nextMenuItem.title = "menu.nextWallpaper".localized
+        } else {
+            nextMenuItem.title = "\("menu.nextWallpaper".localized) (\("ui.folderMode".localized) \("ui.notSet".localized))"
+        }
     }
 }

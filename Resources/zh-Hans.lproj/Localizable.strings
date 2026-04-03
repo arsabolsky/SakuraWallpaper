@@ -44,6 +44,8 @@
 // Menu
 "menu.open" = "打开 SakuraWallpaper";
 "menu.status" = "状态: %@";
+"menu.status.rotating" = "轮播中: %@";
+"menu.status.file" = "当前文件: %@";
 "menu.pause" = "暂停";
 "menu.resume" = "恢复";
 "menu.pauseAll" = "暂停播放";
