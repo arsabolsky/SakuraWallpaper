@@ -8,6 +8,10 @@ A lightweight video and image wallpaper application for macOS.
 ## Features
 
 - Set videos (MP4, MOV, GIF) or images (PNG, JPG, HEIC, WebP) as desktop wallpaper
+- **Folder Rotation Mode**: Select a folder to automatically cycle through wallpapers
+- **Playlist Previews**: Interactive grid view to see and manually select items in a folder
+- **Shuffle Mode**: Randomize wallpaper rotation order
+- **Auto-Pause (Battery Saver)**: Automatically pauses playback when the desktop is hidden or inactive to save energy
 - Multi-display support with independent wallpaper per screen
 - Video wallpaper with automatic loop playback
 - Recent wallpapers history for quick switching
@@ -52,18 +56,23 @@ Requirements: macOS 12.0+, Xcode Command Line Tools
 
 ## Usage
 
-1. Click **Choose Wallpaper** to select a video or image file
-2. Use the screen dropdown to switch between displays
-3. Click **Apply to All** to set the same wallpaper on all screens
-4. Click **Stop Wallpaper** to remove wallpaper from selected screen
-5. Right-click the status bar icon for more options
+1. Click **Select File** to set a single wallpaper, or **Select Folder** to enable rotation mode
+2. Use the **Rotation Interval** stepper to set how often the wallpaper changes (in Folder Mode)
+3. Enable **Shuffle Wallpapers** for randomized order
+4. Toggle **Auto-Pause (Battery Saver)** to optimize energy usage while working in other apps
+5. Use the screen dropdown to switch between displays
+6. Click **Apply to All** to set the same wallpaper/folder on all screens
+7. Click **Stop Wallpaper** to remove wallpaper from selected screen
+8. Right-click the status bar icon for quick controls
 
 ### Status Bar Menu
 
 - **Open SakuraWallpaper** - Open main window
-- **Pause All** - Pause/resume all wallpapers
+- **Pause All** - Manual pause/resume all wallpapers
+- **Auto-Pause (Battery Saver)** - Toggle automatic energy-saving logic
+- **Next Wallpaper** (Shortcut: `n`) - Skip to the next wallpaper in the current folder
 - **Pause Screen** - Pause/resume individual screens
-- **Recent Wallpapers** - Quick switch to previous wallpapers
+- **Recent Wallpapers** - Quick switch to previous wallpapers or folders
 - **Language** - Switch between English and Chinese
 - **Clear History** - Clear wallpaper history
 
