@@ -38,7 +38,7 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         self.wallpaperManager = wallpaperManager
         self.selectedScreen = NSScreen.main
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 500, height: 620),
+            contentRect: NSRect(x: 0, y: 0, width: 500, height: 720),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
@@ -85,7 +85,7 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
     }
 
     private func createHeader() -> NSView {
-        let header = NSView(frame: NSRect(x: 0, y: 560, width: 500, height: 60))
+        let header = NSView(frame: NSRect(x: 0, y: 660, width: 500, height: 60))
 
         let appIcon = NSTextField(labelWithString: "🌸")
         appIcon.font = NSFont.systemFont(ofSize: 32)
@@ -120,7 +120,7 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
     }
 
     private func createScreenSelector() -> NSView {
-        let container = NSView(frame: NSRect(x: 20, y: 510, width: 460, height: 40))
+        let container = NSView(frame: NSRect(x: 20, y: 610, width: 460, height: 40))
 
         let label = NSTextField(labelWithString: "\("ui.screen".localized):")
         label.font = NSFont.systemFont(ofSize: 12, weight: .medium)
@@ -190,10 +190,10 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
     }
 
     private func createPreviewContainer() -> NSView {
-        previewContainer = NSView(frame: NSRect(x: 20, y: 260, width: 460, height: 240))
+        previewContainer = NSView(frame: NSRect(x: 20, y: 320, width: 460, height: 280))
         previewContainer.wantsLayer = true
         previewContainer.layer?.cornerRadius = 12
-        previewContainer.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
+        previewContainer.layer?.backgroundColor = NSColor.black.cgColor
         previewContainer.layer?.borderColor = NSColor.separatorColor.cgColor
         previewContainer.layer?.borderWidth = 1
         previewContainer.layer?.masksToBounds = true
@@ -204,21 +204,21 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         let icon = NSTextField(labelWithString: "📁")
         icon.font = NSFont.systemFont(ofSize: 40)
         icon.alignment = .center
-        icon.frame = NSRect(x: 0, y: 140, width: 460, height: 50)
+        icon.frame = NSRect(x: 0, y: 150, width: 460, height: 50)
         dropZone.addSubview(icon)
 
         dropLabel = NSTextField(labelWithString: "ui.dropHere".localized)
         dropLabel.font = NSFont.systemFont(ofSize: 13)
-        dropLabel.textColor = .secondaryLabelColor
+        dropLabel.textColor = .lightGray
         dropLabel.alignment = .center
-        dropLabel.frame = NSRect(x: 0, y: 110, width: 460, height: 20)
+        dropLabel.frame = NSRect(x: 0, y: 120, width: 460, height: 20)
         dropZone.addSubview(dropLabel)
 
         let formats = NSTextField(labelWithString: "ui.formats".localized)
         formats.font = NSFont.systemFont(ofSize: 10)
-        formats.textColor = .tertiaryLabelColor
+        formats.textColor = .gray
         formats.alignment = .center
-        formats.frame = NSRect(x: 0, y: 90, width: 460, height: 16)
+        formats.frame = NSRect(x: 0, y: 100, width: 460, height: 16)
         dropZone.addSubview(formats)
 
         previewContainer.addSubview(dropZone)
@@ -230,7 +230,7 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         previewContainer.addSubview(previewImageView)
 
         previewPlayerLayer = AVPlayerLayer()
-        previewPlayerLayer.videoGravity = .resizeAspectFill
+        previewPlayerLayer.videoGravity = .resizeAspect
         previewPlayerLayer.frame = previewContainer.bounds
         previewContainer.layer?.addSublayer(previewPlayerLayer)
 
@@ -253,13 +253,14 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         scrollView.hasHorizontalScroller = true
         scrollView.hasVerticalScroller = false
         scrollView.isHidden = true
+        scrollView.drawsBackground = false
         previewContainer.addSubview(scrollView)
 
         return previewContainer
     }
 
     private func createInfoBar() -> NSView {
-        let bar = NSView(frame: NSRect(x: 20, y: 220, width: 460, height: 30))
+        let bar = NSView(frame: NSRect(x: 20, y: 280, width: 460, height: 30))
 
         fileNameLabel = NSTextField(labelWithString: "ui.noWallpaper".localized)
         fileNameLabel.font = NSFont.systemFont(ofSize: 12, weight: .medium)
@@ -278,7 +279,7 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
     }
 
     private func createControls() -> NSView {
-        let controls = NSView(frame: NSRect(x: 20, y: 160, width: 460, height: 50))
+        let controls = NSView(frame: NSRect(x: 20, y: 220, width: 460, height: 50))
 
         selectFileButton = NSButton(title: "ui.selectFile".localized, target: self, action: #selector(selectFile))
         selectFileButton.bezelStyle = .rounded
@@ -301,42 +302,42 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
     }
 
     private func createSettings() -> NSView {
-        let settings = NSView(frame: NSRect(x: 20, y: 50, width: 460, height: 100))
+        let settings = NSView(frame: NSRect(x: 20, y: 50, width: 460, height: 160))
 
         launchSwitch = NSButton(checkboxWithTitle: "ui.launchAtLogin".localized,
                                 target: self, action: #selector(launchSwitchChanged))
         launchSwitch.font = NSFont.systemFont(ofSize: 12)
-        launchSwitch.frame = NSRect(x: 0, y: 70, width: 120, height: 20)
+        launchSwitch.frame = NSRect(x: 0, y: 130, width: 150, height: 20)
         launchSwitch.state = SettingsManager.shared.launchAtLogin ? .on : .off
         settings.addSubview(launchSwitch)
 
         pauseSwitch = NSButton(checkboxWithTitle: "ui.pauseWhenInvisible".localized,
                                target: self, action: #selector(pauseSwitchChanged))
         pauseSwitch.font = NSFont.systemFont(ofSize: 12)
-        pauseSwitch.frame = NSRect(x: 130, y: 70, width: 160, height: 20)
+        pauseSwitch.frame = NSRect(x: 160, y: 130, width: 200, height: 20)
         pauseSwitch.state = SettingsManager.shared.pauseWhenInvisible ? .on : .off
         settings.addSubview(pauseSwitch)
 
         rotationSwitch = NSButton(checkboxWithTitle: "ui.enableRotation".localized,
                                   target: self, action: #selector(rotationSwitchChanged))
         rotationSwitch.font = NSFont.systemFont(ofSize: 12)
-        rotationSwitch.frame = NSRect(x: 300, y: 70, width: 120, height: 20)
+        rotationSwitch.frame = NSRect(x: 0, y: 100, width: 120, height: 20)
         rotationSwitch.state = SettingsManager.shared.isRotationEnabled ? .on : .off
         settings.addSubview(rotationSwitch)
 
         shuffleSwitch = NSButton(checkboxWithTitle: "ui.shuffleMode".localized,
                                  target: self, action: #selector(shuffleSwitchChanged))
         shuffleSwitch.font = NSFont.systemFont(ofSize: 12)
-        shuffleSwitch.frame = NSRect(x: 0, y: 30, width: 150, height: 20)
+        shuffleSwitch.frame = NSRect(x: 130, y: 100, width: 150, height: 20)
         shuffleSwitch.state = SettingsManager.shared.isShuffleMode ? .on : .off
         settings.addSubview(shuffleSwitch)
 
         intervalPrefix = NSTextField(labelWithString: "ui.rotationInterval".localized + ":")
         intervalPrefix.font = NSFont.systemFont(ofSize: 12)
-        intervalPrefix.frame = NSRect(x: 160, y: 30, width: 120, height: 20)
+        intervalPrefix.frame = NSRect(x: 0, y: 70, width: 120, height: 20)
         settings.addSubview(intervalPrefix)
 
-        intervalField = NSTextField(frame: NSRect(x: 285, y: 30, width: 50, height: 22))
+        intervalField = NSTextField(frame: NSRect(x: 125, y: 70, width: 50, height: 22))
         intervalField.font = NSFont.systemFont(ofSize: 12)
         intervalField.alignment = .right
         intervalField.target = self
@@ -348,7 +349,7 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         intervalField.integerValue = SettingsManager.shared.rotationIntervalMinutes
         settings.addSubview(intervalField)
 
-        intervalStepper = NSStepper(frame: NSRect(x: 335, y: 30, width: 15, height: 22))
+        intervalStepper = NSStepper(frame: NSRect(x: 175, y: 70, width: 15, height: 22))
         intervalStepper.minValue = 1
         intervalStepper.maxValue = 1440
         intervalStepper.increment = 1
@@ -361,7 +362,7 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         intervalLabel = NSTextField(labelWithString: formatInterval(minutes: SettingsManager.shared.rotationIntervalMinutes))
         intervalLabel.font = NSFont.systemFont(ofSize: 11)
         intervalLabel.textColor = .secondaryLabelColor
-        intervalLabel.frame = NSRect(x: 360, y: 30, width: 140, height: 20)
+        intervalLabel.frame = NSRect(x: 200, y: 70, width: 250, height: 20)
         settings.addSubview(intervalLabel)
 
         return settings
@@ -638,7 +639,7 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         if isFolder {
             scrollView.isHidden = false
             scrollView.frame = NSRect(x: 0, y: 0, width: 460, height: 100)
-            let previewFrame = NSRect(x: 0, y: 100, width: 460, height: 140)
+            let previewFrame = NSRect(x: 0, y: 100, width: 460, height: 180)
             previewImageView.frame = previewFrame
             previewPlayerLayer.frame = previewFrame
             collectionView.reloadData()
