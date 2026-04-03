@@ -570,7 +570,7 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
                 ?? SettingsManager.shared.wallpaperPath(for: screen)
             isCurrentlyPaused = wallpaperManager.isPaused || wallpaperManager.isScreenPaused(screen)
         } else {
-            wallpaperPath = SettingsManager.shared.wallpaperPath
+            wallpaperPath = wallpaperManager.currentFile?.path ?? SettingsManager.shared.wallpaperPath
             isCurrentlyPaused = wallpaperManager.isPaused
         }
 
@@ -583,7 +583,8 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
             if isFolderMode {
                 let current = wallpaperManager.currentPlaylistIndex + 1
                 let total = wallpaperManager.playlist.count
-                let shuffleIcon = (isShuffleMode && isRotationEnabled) ? "🔀 " : ""
+                let isRotating = isFolderMode && isRotationEnabled
+                let shuffleIcon = (isShuffleMode && isRotating) ? "🔀 " : ""
                 fileNameLabel.stringValue = "\(shuffleIcon)\(filename) (\(current)/\(total))"
                 fileTypeLabel.stringValue = "ui.folderMode".localized
             } else {
