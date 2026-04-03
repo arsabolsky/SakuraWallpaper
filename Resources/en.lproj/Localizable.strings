@@ -24,6 +24,7 @@
 "ui.launchAtLogin" = "Launch at Login";
 "ui.pauseWhenInvisible" = "Pause when inactive";
 "ui.rotationInterval" = "Rotation Interval";
+"ui.enableRotation" = "Enable Rotation";
 "ui.folderMode" = "Rotation Mode";
 "ui.shuffleMode" = "Shuffle Wallpapers";
 "ui.minutes" = "mins";

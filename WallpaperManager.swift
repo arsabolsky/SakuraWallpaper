@@ -98,6 +98,7 @@ class WallpaperManager {
 
     func startRotationTimer() {
         stopRotationTimer()
+        guard SettingsManager.shared.isRotationEnabled else { return }
         guard playlist.count > 1 else { return }
         
         let interval = TimeInterval(SettingsManager.shared.rotationIntervalMinutes * 60)

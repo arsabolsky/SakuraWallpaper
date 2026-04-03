@@ -20,6 +20,7 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
     private var selectFolderButton: NSButton!
     private var launchSwitch: NSButton!
     private var pauseSwitch: NSButton!
+    private var rotationSwitch: NSButton!
     private var shuffleSwitch: NSButton!
     private var intervalField: NSTextField!
     private var intervalStepper: NSStepper!
@@ -298,19 +299,26 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         pauseSwitch.state = SettingsManager.shared.pauseWhenInvisible ? .on : .off
         settings.addSubview(pauseSwitch)
 
+        rotationSwitch = NSButton(checkboxWithTitle: "ui.enableRotation".localized,
+                                  target: self, action: #selector(rotationSwitchChanged))
+        rotationSwitch.font = NSFont.systemFont(ofSize: 12)
+        rotationSwitch.frame = NSRect(x: 300, y: 70, width: 120, height: 20)
+        rotationSwitch.state = SettingsManager.shared.isRotationEnabled ? .on : .off
+        settings.addSubview(rotationSwitch)
+
         shuffleSwitch = NSButton(checkboxWithTitle: "ui.shuffleMode".localized,
                                  target: self, action: #selector(shuffleSwitchChanged))
         shuffleSwitch.font = NSFont.systemFont(ofSize: 12)
-        shuffleSwitch.frame = NSRect(x: 300, y: 70, width: 150, height: 20)
+        shuffleSwitch.frame = NSRect(x: 0, y: 30, width: 150, height: 20)
         shuffleSwitch.state = SettingsManager.shared.isShuffleMode ? .on : .off
         settings.addSubview(shuffleSwitch)
 
         intervalPrefix = NSTextField(labelWithString: "ui.rotationInterval".localized + ":")
         intervalPrefix.font = NSFont.systemFont(ofSize: 12)
-        intervalPrefix.frame = NSRect(x: 0, y: 30, width: 120, height: 20)
+        intervalPrefix.frame = NSRect(x: 160, y: 30, width: 120, height: 20)
         settings.addSubview(intervalPrefix)
 
-        intervalField = NSTextField(frame: NSRect(x: 125, y: 30, width: 50, height: 22))
+        intervalField = NSTextField(frame: NSRect(x: 285, y: 30, width: 50, height: 22))
         intervalField.font = NSFont.systemFont(ofSize: 12)
         intervalField.alignment = .right
         intervalField.target = self
@@ -322,7 +330,7 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         intervalField.integerValue = SettingsManager.shared.rotationIntervalMinutes
         settings.addSubview(intervalField)
 
-        intervalStepper = NSStepper(frame: NSRect(x: 175, y: 30, width: 15, height: 22))
+        intervalStepper = NSStepper(frame: NSRect(x: 335, y: 30, width: 15, height: 22))
         intervalStepper.minValue = 1
         intervalStepper.maxValue = 1440
         intervalStepper.increment = 1
@@ -335,7 +343,7 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         intervalLabel = NSTextField(labelWithString: formatInterval(minutes: SettingsManager.shared.rotationIntervalMinutes))
         intervalLabel.font = NSFont.systemFont(ofSize: 11)
         intervalLabel.textColor = .secondaryLabelColor
-        intervalLabel.frame = NSRect(x: 200, y: 30, width: 250, height: 20)
+        intervalLabel.frame = NSRect(x: 360, y: 30, width: 140, height: 20)
         settings.addSubview(intervalLabel)
 
         return settings
@@ -458,6 +466,18 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         SettingsManager.shared.isShuffleMode = (sender.state == .on)
     }
 
+    @objc func rotationSwitchChanged(_ sender: NSButton) {
+        SettingsManager.shared.isRotationEnabled = (sender.state == .on)
+        if sender.state == .on {
+            wallpaperManager.startRotationTimer()
+        } else {
+            // Timer is stopped inside startRotationTimer if guard fails, 
+            // but let's be explicit if needed. WallpaperManager handles it.
+            wallpaperManager.startRotationTimer() 
+        }
+        updateUI()
+    }
+
     @objc func intervalFieldChanged(_ sender: NSTextField) {
         let val = max(1, sender.integerValue)
         sender.integerValue = val
@@ -474,7 +494,7 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
     private func updateInterval(minutes: Int) {
         SettingsManager.shared.rotationIntervalMinutes = minutes
         intervalLabel.stringValue = formatInterval(minutes: minutes)
-        if SettingsManager.shared.isFolderMode {
+        if SettingsManager.shared.isFolderMode && SettingsManager.shared.isRotationEnabled {
             wallpaperManager.startRotationTimer()
         }
     }
@@ -500,12 +520,17 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         stopButton.isEnabled = wallpaperManager.isActive
         
         let isFolderMode = SettingsManager.shared.isFolderMode
-        intervalField.isEnabled = isFolderMode
-        intervalStepper.isEnabled = isFolderMode
-        shuffleSwitch.isEnabled = isFolderMode
-        intervalPrefix.textColor = isFolderMode ? .labelColor : .disabledControlTextColor
-        intervalLabel.textColor = isFolderMode ? .secondaryLabelColor : .disabledControlTextColor
-        shuffleSwitch.contentTintColor = isFolderMode ? nil : .disabledControlTextColor
+        let isRotationEnabled = SettingsManager.shared.isRotationEnabled
+        
+        rotationSwitch.isEnabled = isFolderMode
+        shuffleSwitch.isEnabled = isFolderMode && isRotationEnabled
+        intervalField.isEnabled = isFolderMode && isRotationEnabled
+        intervalStepper.isEnabled = isFolderMode && isRotationEnabled
+        
+        rotationSwitch.contentTintColor = isFolderMode ? nil : .disabledControlTextColor
+        shuffleSwitch.contentTintColor = (isFolderMode && isRotationEnabled) ? nil : .disabledControlTextColor
+        intervalPrefix.textColor = (isFolderMode && isRotationEnabled) ? .labelColor : .disabledControlTextColor
+        intervalLabel.textColor = (isFolderMode && isRotationEnabled) ? .secondaryLabelColor : .disabledControlTextColor
 
         var wallpaperPath: String?
         if let screen = selectedScreen {
