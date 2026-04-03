@@ -282,7 +282,7 @@ class MainWindowController: NSWindowController {
         let panel = NSOpenPanel()
         panel.title = "ui.chooseWallpaper".localized
         panel.canChooseFiles = true
-        panel.canChooseDirectories = false
+        panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
 
         if #available(macOS 12.0, *) {

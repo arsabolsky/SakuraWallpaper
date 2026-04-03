@@ -21,6 +21,11 @@
 "ui.inactive" = "Inactive";
 "ui.launchAtLogin" = "Launch at Login";
 "ui.pauseWhenInvisible" = "Pause when inactive";
+"ui.rotationInterval" = "Rotation Interval";
+"ui.folderMode" = "Folder Mode";
+"ui.minutes" = "mins";
+"ui.hour" = "hour";
+"ui.hours" = "hours";
 "ui.applyToAll" = "Apply to All";
 "ui.screen" = "Screen";
 "ui.video" = "Video";
