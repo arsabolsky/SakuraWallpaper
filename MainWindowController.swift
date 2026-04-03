@@ -583,7 +583,7 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
             if isFolderMode {
                 let current = wallpaperManager.currentPlaylistIndex + 1
                 let total = wallpaperManager.playlist.count
-                let shuffleIcon = isShuffleMode ? "🔀 " : ""
+                let shuffleIcon = (isShuffleMode && isRotationEnabled) ? "🔀 " : ""
                 fileNameLabel.stringValue = "\(shuffleIcon)\(filename) (\(current)/\(total))"
                 fileTypeLabel.stringValue = "ui.folderMode".localized
             } else {

@@ -306,9 +306,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let isPausedState = wallpaperManager.isPaused || (SettingsManager.shared.pauseWhenInvisible && wallpaperManager.isPausedInternally)
             let stateLabel = isPausedState ? "ui.paused".localized : "ui.playing".localized
             
+            let shuffleIcon = (SettingsManager.shared.isRotationEnabled && SettingsManager.shared.isShuffleMode) ? "🔀 " : ""
+            
             if SettingsManager.shared.isFolderMode, let folderPath = SettingsManager.shared.folderPath {
                 let folderName = (folderPath as NSString).lastPathComponent
-                statusMenuItem.title = "menu.status.rotating".localized(folderName) + " (\(stateLabel))"
+                statusMenuItem.title = "\(shuffleIcon)\("menu.status.rotating".localized(folderName)) (\(stateLabel))"
             } else if let path = SettingsManager.shared.wallpaperPath {
                 let fileName = (path as NSString).lastPathComponent
                 statusMenuItem.title = "menu.status.file".localized(fileName) + " (\(stateLabel))"
