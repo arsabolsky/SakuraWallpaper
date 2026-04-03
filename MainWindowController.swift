@@ -432,6 +432,8 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         }
 
         if isDir.boolValue {
+            // Folders currently apply to All Screens
+            selectedScreen = nil
             wallpaperManager.setFolder(url: url)
         } else {
             let type = MediaType.detect(url)

@@ -111,24 +111,12 @@ class WallpaperManager {
         
         let nextURL = playlist[currentPlaylistIndex]
         
-        for screen in NSScreen.screens {
-            let id = SettingsManager.screenIdentifier(screen)
+        // Only update screens that are currently active
+        for (id, player) in players {
             currentFiles[id] = nextURL
-            
-            if let player = players[id] {
-                player.updateMedia(url: nextURL)
-                if isPaused || isPausedInternally {
-                    player.pausePlayback()
-                }
-            } else {
-                // Fallback if player doesn't exist for some reason
-                let player = ScreenPlayer(fileURL: nextURL, screen: screen)
-                player.setVolume(0)
-                players[id] = player
-                if isPaused || isPausedInternally {
-                    player.pausePlayback()
-                    player.window?.orderOut(nil)
-                }
+            player.updateMedia(url: nextURL)
+            if isPaused || isPausedInternally {
+                player.pausePlayback()
             }
         }
         NotificationCenter.default.post(name: WallpaperManager.didRotateNotification, object: nil)
