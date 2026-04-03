@@ -32,7 +32,8 @@
 "ui.minutes" = "分钟";
 "ui.hour" = "小时";
 "ui.hours" = "小时";
-"ui.applyToAll" = "应用到全部";
+"ui.applyToAll" = "同步所有屏幕";
+"ui.allScreens" = "所有屏幕";
 "ui.screen" = "屏幕";
 "ui.video" = "视频";
 "ui.image" = "图片";

@@ -15,9 +15,10 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
     private var fileTypeLabel: NSTextField!
     private var statusIndicator: NSView!
     private var statusLabel: NSTextField!
-    private var stopButton: NSButton!
     private var selectFileButton: NSButton!
     private var selectFolderButton: NSButton!
+    private var stopButton: NSButton!
+    private var applyAllButton: NSButton!
     private var launchSwitch: NSButton!
     private var pauseSwitch: NSButton!
     private var rotationSwitch: NSButton!
@@ -131,11 +132,11 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         screenPopUp.action = #selector(screenSelectionChanged)
         container.addSubview(screenPopUp)
 
-        let applyAll = NSButton(title: "ui.applyToAll".localized, target: self, action: #selector(applyToAllScreens))
-        applyAll.bezelStyle = .recessed
-        applyAll.font = NSFont.systemFont(ofSize: 11)
-        applyAll.frame = NSRect(x: 295, y: 8, width: 120, height: 25)
-        container.addSubview(applyAll)
+        applyAllButton = NSButton(title: "ui.applyToAll".localized, target: self, action: #selector(applyToAllScreens))
+        applyAllButton.bezelStyle = .recessed
+        applyAllButton.font = NSFont.systemFont(ofSize: 11)
+        applyAllButton.frame = NSRect(x: 295, y: 8, width: 120, height: 25)
+        container.addSubview(applyAllButton)
 
         updateScreenMenu()
 
@@ -144,6 +145,12 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
 
     private func updateScreenMenu() {
         screenPopUp.removeAllItems()
+        
+        // Option 1: All Screens
+        screenPopUp.addItem(withTitle: "ui.allScreens".localized)
+        screenPopUp.lastItem?.representedObject = nil
+
+        // Individual Screens
         for (index, screen) in NSScreen.screens.enumerated() {
             let displayName: String
             if #available(macOS 10.15, *) {
@@ -153,22 +160,21 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
             }
             let isBuiltIn = screen.isBuiltIn
             let suffix = isBuiltIn ? "screen.builtIn".localized : ""
-            screenPopUp.addItem(withTitle: "\(displayName)\(suffix)")
+            screenPopUp.addItem(withTitle: "  \(displayName)\(suffix)")
             screenPopUp.lastItem?.representedObject = screen
         }
+        
         if let selected = selectedScreen, let index = NSScreen.screens.firstIndex(of: selected) {
-            screenPopUp.selectItem(at: index)
+            screenPopUp.selectItem(at: index + 1)
         } else {
             screenPopUp.selectItem(at: 0)
-            selectedScreen = NSScreen.screens.first
+            selectedScreen = nil
         }
     }
 
     @objc private func screenSelectionChanged(_ sender: NSPopUpButton) {
-        if let screen = sender.selectedItem?.representedObject as? NSScreen {
-            selectedScreen = screen
-            updateUI()
-        }
+        selectedScreen = sender.selectedItem?.representedObject as? NSScreen
+        updateUI()
     }
 
     @objc private func applyToAllScreens() {
@@ -530,7 +536,10 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         clearPreview()
         updateScreenMenu()
 
-        stopButton.isEnabled = wallpaperManager.isActive
+        let isAllScreens = (selectedScreen == nil)
+        stopButton.isEnabled = isAllScreens ? wallpaperManager.isActive : (wallpaperManager.wallpaperPath(for: selectedScreen!) != nil)
+        stopButton.title = isAllScreens ? "ui.stopWallpaper".localized : "\("ui.stopWallpaper".localized) (\("ui.screen".localized))"
+        applyAllButton.isEnabled = !isAllScreens
         
         let isFolderMode = SettingsManager.shared.isFolderMode
         let isRotationEnabled = SettingsManager.shared.isRotationEnabled
@@ -546,12 +555,15 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         intervalLabel.textColor = (isFolderMode && isRotationEnabled) ? .secondaryLabelColor : .disabledControlTextColor
 
         var wallpaperPath: String?
+        var isCurrentlyPaused = false
+
         if let screen = selectedScreen {
             wallpaperPath = wallpaperManager.wallpaperPath(for: screen)
                 ?? SettingsManager.shared.wallpaperPath(for: screen)
-        }
-        if wallpaperPath == nil {
+            isCurrentlyPaused = wallpaperManager.isPaused || wallpaperManager.isScreenPaused(screen)
+        } else {
             wallpaperPath = SettingsManager.shared.wallpaperPath
+            isCurrentlyPaused = wallpaperManager.isPaused
         }
 
         if let path = wallpaperPath,
@@ -570,7 +582,8 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
                 fileTypeLabel.stringValue = type == .video ? "ui.video".localized : "ui.image".localized
             }
 
-            if wallpaperManager.isPaused || (SettingsManager.shared.pauseWhenInvisible && wallpaperManager.isPausedInternally) {
+            let isAutoPaused = SettingsManager.shared.pauseWhenInvisible && wallpaperManager.isPausedInternally
+            if isCurrentlyPaused || isAutoPaused {
                 statusIndicator.layer?.backgroundColor = NSColor.systemYellow.cgColor
                 statusLabel.stringValue = "ui.status".localized("ui.paused".localized)
                 statusLabel.textColor = .systemYellow

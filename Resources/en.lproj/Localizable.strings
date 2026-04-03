@@ -32,7 +32,8 @@
 "ui.minutes" = "mins";
 "ui.hour" = "hour";
 "ui.hours" = "hours";
-"ui.applyToAll" = "Apply to All";
+"ui.applyToAll" = "Sync All Screens";
+"ui.allScreens" = "All Screens";
 "ui.screen" = "Screen";
 "ui.video" = "Video";
 "ui.image" = "Image";
