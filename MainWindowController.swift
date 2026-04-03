@@ -296,20 +296,20 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource {
         formatter.allowsFloats = false
         formatter.minimum = 1
         intervalField.formatter = formatter
-        intervalField.integerValue = SettingsManager.shared.rotationIntervalSeconds
+        intervalField.integerValue = SettingsManager.shared.rotationIntervalMinutes
         settings.addSubview(intervalField)
 
         intervalStepper = NSStepper(frame: NSRect(x: 175, y: 30, width: 15, height: 22))
         intervalStepper.minValue = 1
-        intervalStepper.maxValue = 86400
+        intervalStepper.maxValue = 1440
         intervalStepper.increment = 1
         intervalStepper.valueWraps = false
-        intervalStepper.integerValue = SettingsManager.shared.rotationIntervalSeconds
+        intervalStepper.integerValue = SettingsManager.shared.rotationIntervalMinutes
         intervalStepper.target = self
         intervalStepper.action = #selector(intervalStepperChanged)
         settings.addSubview(intervalStepper)
 
-        intervalLabel = NSTextField(labelWithString: formatInterval(seconds: SettingsManager.shared.rotationIntervalSeconds))
+        intervalLabel = NSTextField(labelWithString: formatInterval(minutes: SettingsManager.shared.rotationIntervalMinutes))
         intervalLabel.font = NSFont.systemFont(ofSize: 11)
         intervalLabel.textColor = .secondaryLabelColor
         intervalLabel.frame = NSRect(x: 200, y: 30, width: 250, height: 20)
@@ -424,49 +424,35 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource {
         let val = max(1, sender.integerValue)
         sender.integerValue = val
         intervalStepper.integerValue = val
-        updateInterval(seconds: val)
+        updateInterval(minutes: val)
     }
 
     @objc func intervalStepperChanged(_ sender: NSStepper) {
         let val = sender.integerValue
         intervalField.integerValue = val
-        updateInterval(seconds: val)
+        updateInterval(minutes: val)
     }
 
-    private func updateInterval(seconds: Int) {
-        SettingsManager.shared.rotationIntervalSeconds = seconds
-        intervalLabel.stringValue = formatInterval(seconds: seconds)
+    private func updateInterval(minutes: Int) {
+        SettingsManager.shared.rotationIntervalMinutes = minutes
+        intervalLabel.stringValue = formatInterval(minutes: minutes)
         if SettingsManager.shared.isFolderMode {
             wallpaperManager.startRotationTimer()
         }
     }
 
-    private func formatInterval(seconds: Int) -> String {
-        if seconds < 60 {
-            return "\(seconds) \("ui.seconds".localized)"
-        }
-        let minutes = seconds / 60
-        let remainingSeconds = seconds % 60
-        
+    private func formatInterval(minutes: Int) -> String {
         if minutes < 60 {
-            if remainingSeconds == 0 {
-                return "\(minutes) \("ui.minutes".localized)"
-            }
-            return "\(minutes) \("ui.minutes".localized) \(remainingSeconds) \("ui.seconds".localized)"
+            return "\(minutes) \("ui.minutes".localized)"
         }
-        
         let hrs = minutes / 60
         let remainingMinutes = minutes % 60
         let hrString = hrs == 1 ? "ui.hour".localized : "ui.hours".localized
         
-        var result = "\(hrs) \(hrString)"
-        if remainingMinutes > 0 {
-            result += " \(remainingMinutes) \("ui.minutes".localized)"
+        if remainingMinutes == 0 {
+            return "\(hrs) \(hrString)"
         }
-        if remainingSeconds > 0 {
-            result += " \(remainingSeconds) \("ui.seconds".localized)"
-        }
-        return result
+        return "\(hrs) \(hrString) \(remainingMinutes) \("ui.minutes".localized)"
     }
 
     func updateUI() {

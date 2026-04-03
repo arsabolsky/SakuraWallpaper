@@ -14,7 +14,7 @@ class SettingsManager {
     private let languageKey = "sakurawallpaper_language"
     private let isFolderModeKey = "sakurawallpaper_is_folder_mode"
     private let folderPathKey = "sakurawallpaper_folder_path"
-    private let rotationIntervalSecondsKey = "sakurawallpaper_rotation_interval_seconds"
+    private let rotationIntervalMinutesKey = "sakurawallpaper_rotation_interval_minutes"
 
     var wallpaperPath: String? {
         get { defaults.string(forKey: wallpaperKey) }
@@ -34,12 +34,12 @@ class SettingsManager {
         set { defaults.set(newValue, forKey: folderPathKey) }
     }
 
-    var rotationIntervalSeconds: Int {
+    var rotationIntervalMinutes: Int {
         get { 
-            let value = defaults.integer(forKey: rotationIntervalSecondsKey)
-            return value > 0 ? value : 60 // Default to 60 seconds
+            let value = defaults.integer(forKey: rotationIntervalMinutesKey)
+            return value > 0 ? value : 15 // Default to 15 mins
         }
-        set { defaults.set(newValue, forKey: rotationIntervalSecondsKey) }
+        set { defaults.set(newValue, forKey: rotationIntervalMinutesKey) }
     }
 
     var launchAtLogin: Bool {
