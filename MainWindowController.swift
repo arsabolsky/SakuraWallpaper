@@ -18,6 +18,7 @@ class MainWindowController: NSWindowController {
     private var chooseButton: NSButton!
     private var stopButton: NSButton!
     private var launchSwitch: NSButton!
+    private var pauseSwitch: NSButton!
     private var dropZone: NSView!
     private var dropLabel: NSTextField!
     private var screenPopUp: NSPopUpButton!
@@ -245,9 +246,16 @@ class MainWindowController: NSWindowController {
         launchSwitch = NSButton(checkboxWithTitle: "ui.launchAtLogin".localized,
                                 target: self, action: #selector(launchSwitchChanged))
         launchSwitch.font = NSFont.systemFont(ofSize: 12)
-        launchSwitch.frame = NSRect(x: 0, y: 2, width: 150, height: 20)
+        launchSwitch.frame = NSRect(x: 0, y: 2, width: 120, height: 20)
         launchSwitch.state = SettingsManager.shared.launchAtLogin ? .on : .off
         settings.addSubview(launchSwitch)
+
+        pauseSwitch = NSButton(checkboxWithTitle: "ui.pauseWhenInvisible".localized,
+                               target: self, action: #selector(pauseSwitchChanged))
+        pauseSwitch.font = NSFont.systemFont(ofSize: 12)
+        pauseSwitch.frame = NSRect(x: 130, y: 2, width: 160, height: 20)
+        pauseSwitch.state = SettingsManager.shared.pauseWhenInvisible ? .on : .off
+        settings.addSubview(pauseSwitch)
 
         return settings
     }
@@ -340,6 +348,10 @@ class MainWindowController: NSWindowController {
 
     @objc func launchSwitchChanged(_ sender: NSButton) {
         SettingsManager.shared.launchAtLogin = (sender.state == .on)
+    }
+
+    @objc func pauseSwitchChanged(_ sender: NSButton) {
+        SettingsManager.shared.pauseWhenInvisible = (sender.state == .on)
     }
 
     func updateUI() {
