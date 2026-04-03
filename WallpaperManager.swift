@@ -111,15 +111,22 @@ class WallpaperManager {
         
         for screen in NSScreen.screens {
             let id = SettingsManager.screenIdentifier(screen)
-            players[id]?.cleanup()
-            players.removeValue(forKey: id)
             currentFiles[id] = nextURL
-        }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-            self?.createAllPlayers()
-            if self?.isPaused == true || self?.isPausedInternally == true {
-                self?.players.values.forEach { $0.pausePlayback(); $0.window?.orderOut(nil) }
+            
+            if let player = players[id] {
+                player.updateMedia(url: nextURL)
+                if isPaused || isPausedInternally {
+                    player.pausePlayback()
+                }
+            } else {
+                // Fallback if player doesn't exist for some reason
+                let player = ScreenPlayer(fileURL: nextURL, screen: screen)
+                player.setVolume(0)
+                players[id] = player
+                if isPaused || isPausedInternally {
+                    player.pausePlayback()
+                    player.window?.orderOut(nil)
+                }
             }
         }
     }
@@ -179,17 +186,22 @@ class WallpaperManager {
     }
 
     private func urlForScreen(_ screen: NSScreen) -> URL? {
+        // Priority 1: If we have an explicitly set file in currentFiles (important for rotation)
+        let id = SettingsManager.screenIdentifier(screen)
+        if let currentURL = currentFiles[id], FileManager.default.fileExists(atPath: currentURL.path) {
+            return currentURL
+        }
+
+        // Priority 2: Per-screen settings from disk
         if let path = SettingsManager.shared.wallpaperPath(for: screen) {
             return URL(fileURLWithPath: path)
         }
+
+        // Priority 3: Global setting from disk
         if let url = SettingsManager.shared.wallpaperURL {
             return url
         }
-        for (_, fileURL) in currentFiles {
-            if FileManager.default.fileExists(atPath: fileURL.path) {
-                return fileURL
-            }
-        }
+
         return nil
     }
 

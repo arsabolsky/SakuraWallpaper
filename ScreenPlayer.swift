@@ -9,13 +9,32 @@ class ScreenPlayer {
     private var imageView: NSImageView?
     private var endObserver: Any?
     private let screen: NSScreen
-    private let fileURL: URL
+    private var fileURL: URL
 
     init(fileURL: URL, screen: NSScreen) {
         self.screen = screen
         self.fileURL = fileURL
         setupWindow()
         setupContent()
+    }
+
+    func updateMedia(url: URL) {
+        self.fileURL = url
+        clearContent()
+        setupContent()
+    }
+
+    private func clearContent() {
+        avPlayer?.pause()
+        if let obs = endObserver { NotificationCenter.default.removeObserver(obs) }
+        endObserver = nil
+        playerLayer?.removeFromSuperlayer()
+        playerLayer = nil
+        avPlayer = nil
+        
+        if let contentView = window?.contentView {
+            contentView.layer = nil
+        }
     }
 
     private func setupWindow() {
