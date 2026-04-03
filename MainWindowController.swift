@@ -193,7 +193,7 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         previewContainer = NSView(frame: NSRect(x: 20, y: 320, width: 460, height: 280))
         previewContainer.wantsLayer = true
         previewContainer.layer?.cornerRadius = 12
-        previewContainer.layer?.backgroundColor = NSColor.black.cgColor
+        previewContainer.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
         previewContainer.layer?.borderColor = NSColor.separatorColor.cgColor
         previewContainer.layer?.borderWidth = 1
         previewContainer.layer?.masksToBounds = true
@@ -209,14 +209,14 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
 
         dropLabel = NSTextField(labelWithString: "ui.dropHere".localized)
         dropLabel.font = NSFont.systemFont(ofSize: 13)
-        dropLabel.textColor = .lightGray
+        dropLabel.textColor = .secondaryLabelColor
         dropLabel.alignment = .center
         dropLabel.frame = NSRect(x: 0, y: 120, width: 460, height: 20)
         dropZone.addSubview(dropLabel)
 
         let formats = NSTextField(labelWithString: "ui.formats".localized)
         formats.font = NSFont.systemFont(ofSize: 10)
-        formats.textColor = .gray
+        formats.textColor = .tertiaryLabelColor
         formats.alignment = .center
         formats.frame = NSRect(x: 0, y: 100, width: 460, height: 16)
         dropZone.addSubview(formats)
