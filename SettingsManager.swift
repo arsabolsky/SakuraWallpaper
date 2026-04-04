@@ -8,9 +8,15 @@ class SettingsManager {
     private let defaults = UserDefaults.standard
     private let wallpaperKey = "sakurawallpaper_wallpaper_path"
     private let launchKey    = "sakurawallpaper_launch_at_login"
+    private let pauseWhenInvisibleKey = "sakurawallpaper_pause_when_invisible"
     private let historyKey   = "sakurawallpaper_history"
     private let screenWallpapersKey = "sakurawallpaper_screen_wallpapers"
     private let languageKey = "sakurawallpaper_language"
+    private let isFolderModeKey = "sakurawallpaper_is_folder_mode"
+    private let folderPathKey = "sakurawallpaper_folder_path"
+    private let rotationIntervalMinutesKey = "sakurawallpaper_rotation_interval_minutes"
+    private let isShuffleModeKey = "sakurawallpaper_is_shuffle_mode"
+    private let isRotationEnabledKey = "sakurawallpaper_is_rotation_enabled"
 
     var wallpaperPath: String? {
         get { defaults.string(forKey: wallpaperKey) }
@@ -20,12 +26,51 @@ class SettingsManager {
         }
     }
 
+    var isFolderMode: Bool {
+        get { defaults.bool(forKey: isFolderModeKey) }
+        set { defaults.set(newValue, forKey: isFolderModeKey) }
+    }
+
+    var folderPath: String? {
+        get { defaults.string(forKey: folderPathKey) }
+        set {
+            defaults.set(newValue, forKey: folderPathKey)
+            if let p = newValue { addToHistory(p) }
+        }
+    }
+
+    var rotationIntervalMinutes: Int {
+        get { 
+            let value = defaults.integer(forKey: rotationIntervalMinutesKey)
+            return value > 0 ? value : 15 // Default to 15 mins
+        }
+        set { defaults.set(newValue, forKey: rotationIntervalMinutesKey) }
+    }
+
+    var isShuffleMode: Bool {
+        get { defaults.bool(forKey: isShuffleModeKey) }
+        set { defaults.set(newValue, forKey: isShuffleModeKey) }
+    }
+
+    var isRotationEnabled: Bool {
+        get { 
+            if defaults.object(forKey: isRotationEnabledKey) == nil { return true }
+            return defaults.bool(forKey: isRotationEnabledKey)
+        }
+        set { defaults.set(newValue, forKey: isRotationEnabledKey) }
+    }
+
     var launchAtLogin: Bool {
         get { defaults.bool(forKey: launchKey) }
         set {
             defaults.set(newValue, forKey: launchKey)
             updateLoginItem(enabled: newValue)
         }
+    }
+
+    var pauseWhenInvisible: Bool {
+        get { defaults.bool(forKey: pauseWhenInvisibleKey) }
+        set { defaults.set(newValue, forKey: pauseWhenInvisibleKey) }
     }
 
     var wallpaperHistory: [String] {

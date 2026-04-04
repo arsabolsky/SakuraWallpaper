@@ -3,11 +3,14 @@ import AVFoundation
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem!
+    var statusMenuItem: NSMenuItem!
     var mainWindow: MainWindowController!
     var wallpaperManager: WallpaperManager!
     var recentMenu: NSMenu!
     var aboutWindow: AboutWindowController?
     var pauseItem: NSMenuItem!
+    var autoPauseItem: NSMenuItem!
+    var nextMenuItem: NSMenuItem!
     var screenPauseMenu: NSMenu!
     var languageMenu: NSMenu!
 
@@ -16,7 +19,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         mainWindow = MainWindowController(wallpaperManager: wallpaperManager)
         setupStatusBar()
 
-        if SettingsManager.shared.hasScreenWallpapers {
+        if SettingsManager.shared.isFolderMode,
+           let folderPath = SettingsManager.shared.folderPath,
+           FileManager.default.fileExists(atPath: folderPath) {
+            let url = URL(fileURLWithPath: folderPath)
+            wallpaperManager.setFolder(url: url)
+        } else if SettingsManager.shared.hasScreenWallpapers {
             for screen in NSScreen.screens {
                 if let url = SettingsManager.shared.wallpaperURL(for: screen),
                    FileManager.default.fileExists(atPath: url.path) {
@@ -45,9 +53,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         openItem.target = self
         menu.addItem(openItem)
 
+        menu.addItem(.separator())
+
+        statusMenuItem = NSMenuItem(title: "menu.status".localized("ui.notSet".localized), action: nil, keyEquivalent: "")
+        statusMenuItem.isEnabled = false
+        menu.addItem(statusMenuItem)
+
         pauseItem = NSMenuItem(title: "menu.pauseAll".localized, action: #selector(togglePause), keyEquivalent: "p")
         pauseItem.target = self
         menu.addItem(pauseItem)
+
+        nextMenuItem = NSMenuItem(title: "menu.nextWallpaper".localized, action: #selector(nextWallpaper), keyEquivalent: "n")
+        nextMenuItem.target = self
+        menu.addItem(nextMenuItem)
+
+        let stopItem = NSMenuItem(title: "menu.stopWallpaper".localized, action: #selector(stopWallpaper), keyEquivalent: "s")
+        stopItem.target = self
+        menu.addItem(stopItem)
+
+        menu.addItem(.separator())
+
+        autoPauseItem = NSMenuItem(title: "menu.autoPause".localized, action: #selector(toggleAutoPause), keyEquivalent: "")
+        autoPauseItem.target = self
+        menu.addItem(autoPauseItem)
 
         screenPauseMenu = NSMenu(title: "menu.pauseScreen".localized)
         let screenPauseItem = NSMenuItem(title: "menu.pauseScreen".localized, action: nil, keyEquivalent: "")
@@ -101,8 +129,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             item.representedObject = path
             item.target = self
 
-            if path == SettingsManager.shared.wallpaperPath {
-                item.state = .on
+            if SettingsManager.shared.isFolderMode {
+                if path == SettingsManager.shared.folderPath {
+                    item.state = .on
+                }
+            } else {
+                if path == SettingsManager.shared.wallpaperPath {
+                    item.state = .on
+                }
             }
 
             let icon = iconFor(path: path)
@@ -139,11 +173,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func switchToRecent(_ sender: NSMenuItem) {
-        guard let path = sender.representedObject as? String,
-              FileManager.default.fileExists(atPath: path) else { return }
+        guard let path = sender.representedObject as? String else { return }
+        var isDir: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: path, isDirectory: &isDir) else { return }
         let url = URL(fileURLWithPath: path)
-        wallpaperManager.setWallpaper(url: url)
-        SettingsManager.shared.wallpaperPath = path
+        
+        if isDir.boolValue {
+            wallpaperManager.setFolder(url: url)
+        } else {
+            SettingsManager.shared.isRotationEnabled = false
+            SettingsManager.shared.isShuffleMode = false
+            wallpaperManager.setWallpaper(url: url)
+            SettingsManager.shared.wallpaperPath = path
+            SettingsManager.shared.isFolderMode = false
+        }
+        
         mainWindow.updateUI()
         rebuildRecentMenu()
     }
@@ -225,6 +269,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func stopWallpaper() {
         wallpaperManager.stopAll()
         SettingsManager.shared.wallpaperPath = nil
+        SettingsManager.shared.isFolderMode = false
+        SettingsManager.shared.folderPath = nil
         mainWindow.updateUI()
         rebuildRecentMenu()
     }
@@ -239,9 +285,42 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         mainWindow.updateUI()
     }
 
+    @objc func toggleAutoPause() {
+        SettingsManager.shared.pauseWhenInvisible = !SettingsManager.shared.pauseWhenInvisible
+        wallpaperManager.checkPlaybackState()
+        updateAutoPauseItem()
+        mainWindow.updateUI()
+    }
+
     private func updatePauseItem() {
         pauseItem.title = wallpaperManager.isPaused ? "menu.resume".localized : "menu.pause".localized
         pauseItem.isEnabled = wallpaperManager.isActive
+    }
+
+    private func updateAutoPauseItem() {
+        autoPauseItem.state = SettingsManager.shared.pauseWhenInvisible ? .on : .off
+        
+        let statusStr: String
+        if !wallpaperManager.isActive {
+            statusStr = "ui.notSet".localized
+            statusMenuItem.title = "menu.status".localized(statusStr)
+        } else {
+            let isPausedState = wallpaperManager.isPaused || (SettingsManager.shared.pauseWhenInvisible && wallpaperManager.isPausedInternally)
+            let stateLabel = isPausedState ? "ui.paused".localized : "ui.playing".localized
+            
+            let isRotating = SettingsManager.shared.isFolderMode && SettingsManager.shared.isRotationEnabled
+            let shuffleIcon = (isRotating && SettingsManager.shared.isShuffleMode) ? "🔀 " : ""
+            
+            if isRotating, let folderPath = SettingsManager.shared.folderPath {
+                let folderName = (folderPath as NSString).lastPathComponent
+                statusMenuItem.title = "\(shuffleIcon)\("menu.status.rotating".localized(folderName)) (\(stateLabel))"
+            } else if let url = wallpaperManager.currentFile {
+                let fileName = url.lastPathComponent
+                statusMenuItem.title = "menu.status.file".localized(fileName) + " (\(stateLabel))"
+            } else {
+                statusMenuItem.title = "menu.status".localized(stateLabel)
+            }
+        }
     }
 
     @objc func showAbout() {
@@ -257,6 +336,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         wallpaperManager.stopAll()
         NSApp.terminate(nil)
     }
+
+    @objc func nextWallpaper() {
+        wallpaperManager.nextWallpaper()
+    }
+
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        if menuItem.action == #selector(nextWallpaper) {
+            return SettingsManager.shared.isFolderMode
+        }
+        return true
+    }
 }
 
 extension AppDelegate: NSMenuDelegate {
@@ -265,5 +355,12 @@ extension AppDelegate: NSMenuDelegate {
         rebuildScreenPauseMenu()
         rebuildLanguageMenu()
         updatePauseItem()
+        updateAutoPauseItem()
+        
+        if SettingsManager.shared.isFolderMode {
+            nextMenuItem.title = "menu.nextWallpaper".localized
+        } else {
+            nextMenuItem.title = "\("menu.nextWallpaper".localized) (\("ui.folderMode".localized) \("ui.notSet".localized))"
+        }
     }
 }
