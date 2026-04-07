@@ -8,15 +8,15 @@ A lightweight video and image wallpaper application for macOS.
 ## Features
 
 - Set videos (MP4, MOV, GIF) or images (PNG, JPG, HEIC, WebP) as desktop wallpaper
-- **Folder Rotation Mode**: Select a folder to automatically cycle through wallpapers
-- **Playlist Previews**: Interactive grid view to see and manually select items in a folder
+- **Rotation Mode**: Select a folder to automatically cycle through wallpapers
+- **Playlist Previews**: Interactive grid view with live previews of the currently selected item
 - **Shuffle Mode**: Randomize wallpaper rotation order
-- **Auto-Pause (Battery Saver)**: Automatically pauses playback when the desktop is hidden or inactive to save energy
+- **Battery Saver**: Intelligent energy-saving mode. Automatically pauses playback when the desktop is hidden, another app is active, or the **laptop lid is closed**
 - Multi-display support with independent wallpaper per screen
 - Video wallpaper with automatic loop playback
-- Recent wallpapers history for quick switching
+- Recent wallpapers history for quick switching (Supports folders)
 - Launch at login support
-- Pause and resume wallpaper playback
+- Manual Pause/Resume control
 - Bilingual interface (English / Chinese)
 
 ## Screenshots
@@ -24,6 +24,7 @@ A lightweight video and image wallpaper application for macOS.
 ![Main Window](img/Sakurawallpaper1.jpeg)
 
 ![Status Bar Menu](img/Sakurawallpaper2.jpeg)
+
 ![SakuraWallpaper Demo](img/video.gif)
 
 ## Supported Formats
@@ -56,23 +57,25 @@ Requirements: macOS 12.0+, Xcode Command Line Tools
 
 ## Usage
 
-1. Click **Select File** to set a single wallpaper, or **Select Folder** to enable rotation mode
-2. Use the **Rotation Interval** stepper to set how often the wallpaper changes (in Folder Mode)
-3. Enable **Shuffle Wallpapers** for randomized order
-4. Toggle **Auto-Pause (Battery Saver)** to optimize energy usage while working in other apps
-5. Use the screen dropdown to switch between displays
-6. Click **Apply to All** to set the same wallpaper/folder on all screens
-7. Click **Stop Wallpaper** to remove wallpaper from selected screen
+1. Click **Pick File** to set a single wallpaper, or **Pick Folder** to enable rotation mode
+2. Use the **Interval** stepper to set how often the wallpaper changes (in Rotation Mode)
+3. Enable **Shuffle** for randomized order
+4. Toggle **Battery Saver** to optimize energy usage while working in other apps or when the screen is off
+5. Use the screen dropdown to switch between displays (or **All Screens** for global control)
+6. Click **Sync All Screens** to push your current selection to every monitor
+7. Click **Clear** to remove wallpaper from the selected screen
 8. Right-click the status bar icon for quick controls
 
 ### Status Bar Menu
 
 - **Open SakuraWallpaper** - Open main window
-- **Pause All** - Manual pause/resume all wallpapers
-- **Auto-Pause (Battery Saver)** - Toggle automatic energy-saving logic
-- **Next Wallpaper** (Shortcut: `n`) - Skip to the next wallpaper in the current folder
-- **Pause Screen** - Pause/resume individual screens
-- **Recent Wallpapers** - Quick switch to previous wallpapers or folders
+- **Status: Live/Paused/None** - Real-time informational readout
+- **Pause Playback** - Manual toggle for all wallpapers
+- **Battery Saver** - Toggle automatic energy-saving logic
+- **Next Wallpaper** (Shortcut: `n`) - Skip to the next item in the rotation
+- **Clear Wallpaper** - Reset and remove current selection
+- **Per-Screen Pause** - Pause/resume individual screens
+- **Recent** - Quick switch to previous wallpapers or folders
 - **Language** - Switch between English and Chinese
 - **Clear History** - Clear wallpaper history
 
@@ -102,6 +105,7 @@ SakuraWallpaper/
 ├── SettingsManager.swift      # User preferences storage
 ├── Localization.swift         # Localization helper
 ├── MediaType.swift            # File type detection
+├── ThumbnailItem.swift        # Collection view item for previews
 ├── AboutWindowController.swift # About window
 ├── main.swift                 # Entry point
 ├── build.sh                   # Build script
@@ -125,4 +129,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-Made with love by sakura
+Made with ❤️ by sakura
