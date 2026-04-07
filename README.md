@@ -127,4 +127,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-Made with love by sakura
+Made with ❤️ by sakura
