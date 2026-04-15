@@ -32,6 +32,8 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
     private var intervalLabel: NSTextField!
     private var intervalPrefix: NSTextField!
     private var folderCountLabel: NSTextField!
+    private var inheritSourceLabel: NSTextField!
+    private var inheritSourcePopUp: NSPopUpButton!
     private var collectionView: NSCollectionView!
     private var scrollView: NSScrollView!
     private var dropZone: NSView!
@@ -411,8 +413,48 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         folderCountLabel.textColor = .secondaryLabelColor
         folderCountLabel.frame = NSRect(x: 0, y: 28, width: 430, height: 18)
         settings.addSubview(folderCountLabel)
+        
+        inheritSourceLabel = NSTextField(labelWithString: "ui.newScreenInherit".localized + ":")
+        inheritSourceLabel.font = NSFont.systemFont(ofSize: 12)
+        inheritSourceLabel.frame = NSRect(x: 0, y: 4, width: 120, height: 20)
+        settings.addSubview(inheritSourceLabel)
+        
+        inheritSourcePopUp = NSPopUpButton(frame: NSRect(x: 125, y: 2, width: 300, height: 25))
+        inheritSourcePopUp.target = self
+        inheritSourcePopUp.action = #selector(inheritSourceChanged)
+        settings.addSubview(inheritSourcePopUp)
+        updateInheritSourceMenu()
 
         return settings
+    }
+
+    private func updateInheritSourceMenu() {
+        inheritSourcePopUp.removeAllItems()
+        
+        inheritSourcePopUp.addItem(withTitle: "ui.inheritPrimaryScreen".localized)
+        inheritSourcePopUp.lastItem?.representedObject = "__primary__"
+        
+        for (index, screen) in NSScreen.screens.enumerated() {
+            let displayName: String
+            if #available(macOS 10.15, *) {
+                displayName = screen.localizedName
+            } else {
+                displayName = "screen.display".localized(index + 1)
+            }
+            let suffix = screen.isBuiltIn ? "screen.builtIn".localized : ""
+            let title = "  \(displayName)\(suffix)"
+            inheritSourcePopUp.addItem(withTitle: title)
+            inheritSourcePopUp.lastItem?.representedObject = SettingsManager.screenIdentifier(screen)
+        }
+        
+        let settings = SettingsManager.shared
+        if settings.newScreenInheritanceMode == .specificScreen,
+           let sourceId = settings.newScreenInheritanceScreenId,
+           let targetItem = inheritSourcePopUp.itemArray.first(where: { ($0.representedObject as? String) == sourceId }) {
+            inheritSourcePopUp.select(targetItem)
+        } else {
+            inheritSourcePopUp.selectItem(at: 0)
+        }
     }
 
     private func createFooter() -> NSView {
@@ -546,6 +588,17 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         SettingsManager.shared.pauseWhenInvisible = (sender.state == .on)
         wallpaperManager.checkPlaybackState()
     }
+    
+    @objc func inheritSourceChanged(_ sender: NSPopUpButton) {
+        guard let value = sender.selectedItem?.representedObject as? String else { return }
+        if value == "__primary__" {
+            SettingsManager.shared.newScreenInheritanceMode = .primaryScreen
+            SettingsManager.shared.newScreenInheritanceScreenId = nil
+            return
+        }
+        SettingsManager.shared.newScreenInheritanceMode = .specificScreen
+        SettingsManager.shared.newScreenInheritanceScreenId = value
+    }
 
     @objc func includeSubfoldersChanged(_ sender: NSButton) {
         SettingsManager.shared.includeSubfolders = (sender.state == .on)
@@ -652,6 +705,7 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
 
     func updateUI() {
         updateScreenMenu()
+        updateInheritSourceMenu()
         wallpaperManager.setUIScreen(selectedScreen)
 
         let isAllScreens = (selectedScreen == nil)

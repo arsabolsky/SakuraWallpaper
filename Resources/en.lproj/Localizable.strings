@@ -105,3 +105,6 @@
 "about.formatsTitle" = "Supported Formats";
 "about.featuresTitle" = "Features";
 "about.features" = "Video & Image Wallpaper\nMulti-Display Support\nRecent Wallpapers\nLaunch at Login";
+
+"ui.newScreenInherit" = "New Screen Inherits";
+"ui.inheritPrimaryScreen" = "Primary Screen (Default)";

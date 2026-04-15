@@ -105,3 +105,6 @@
 "about.formatsTitle" = "支持格式";
 "about.featuresTitle" = "功能特性";
 "about.features" = "视频和图片壁纸\n多显示器支持\n最近使用壁纸\n开机自启动";
+
+"ui.newScreenInherit" = "新屏继承来源";
+"ui.inheritPrimaryScreen" = "主屏（默认）";

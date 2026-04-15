@@ -263,8 +263,6 @@ class WallpaperManager {
     @objc private func screensChanged() {
         let currentScreenIds = Set(NSScreen.screens.map { SettingsManager.screenIdentifier($0) })
         let existingIds = Set(players.keys)
-        let primaryScreen = primaryScreenForInheritance()
-        let primaryScreenId = primaryScreen.map { SettingsManager.screenIdentifier($0) }
 
         for removedId in existingIds.subtracting(currentScreenIds) {
             players[removedId]?.cleanup()
@@ -287,9 +285,7 @@ class WallpaperManager {
                 continue
             }
 
-            if let sourceScreen = primaryScreen,
-               let sourceId = primaryScreenId,
-               sourceId != id {
+            if let sourceScreen = inheritanceSourceScreen(excluding: id) {
                 if let sourceConfig = SettingsManager.shared.folderConfig(for: sourceScreen),
                    FileManager.default.fileExists(atPath: sourceConfig.folderPath) {
                     let folderURL = URL(fileURLWithPath: sourceConfig.folderPath)
@@ -332,11 +328,30 @@ class WallpaperManager {
         }
     }
 
-    private func primaryScreenForInheritance() -> NSScreen? {
-        if let builtIn = NSScreen.screens.first(where: { $0.isBuiltIn }) {
+    private func inheritanceSourceScreen(excluding screenId: String) -> NSScreen? {
+        let settings = SettingsManager.shared
+        switch settings.newScreenInheritanceMode {
+        case .primaryScreen:
+            return primaryScreenForInheritance(excluding: screenId)
+        case .specificScreen:
+            if let sourceId = settings.newScreenInheritanceScreenId,
+               sourceId != screenId,
+               let sourceScreen = NSScreen.screens.first(where: { SettingsManager.screenIdentifier($0) == sourceId }) {
+                return sourceScreen
+            }
+            return primaryScreenForInheritance(excluding: screenId)
+        }
+    }
+
+    private func primaryScreenForInheritance(excluding screenId: String) -> NSScreen? {
+        if let builtIn = NSScreen.screens.first(where: { $0.isBuiltIn && SettingsManager.screenIdentifier($0) != screenId }) {
             return builtIn
         }
-        return NSScreen.main ?? NSScreen.screens.first
+        if let main = NSScreen.main,
+           SettingsManager.screenIdentifier(main) != screenId {
+            return main
+        }
+        return NSScreen.screens.first(where: { SettingsManager.screenIdentifier($0) != screenId })
     }
 
     @objc private func appBecameActive() {

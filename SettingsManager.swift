@@ -12,6 +12,11 @@ struct ScreenFolderConfig: Codable {
 
 class SettingsManager {
     static let shared = SettingsManager()
+    
+    enum NewScreenInheritanceMode: String {
+        case primaryScreen
+        case specificScreen
+    }
 
     private let defaults: UserDefaults
     private let wallpaperKey = "sakurawallpaper_wallpaper_path"
@@ -28,6 +33,8 @@ class SettingsManager {
     private let includeSubfoldersKey = "sakurawallpaper_include_subfolders"
     private let onboardingCompletedKey = "sakurawallpaper_onboarding_completed"
     private let screenFolderConfigsKey = "sakurawallpaper_screen_folder_configs"
+    private let newScreenInheritanceModeKey = "sakurawallpaper_new_screen_inheritance_mode"
+    private let newScreenInheritanceScreenIdKey = "sakurawallpaper_new_screen_inheritance_screen_id"
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -78,6 +85,22 @@ class SettingsManager {
     var includeSubfolders: Bool {
         get { defaults.bool(forKey: includeSubfoldersKey) }
         set { defaults.set(newValue, forKey: includeSubfoldersKey) }
+    }
+    
+    var newScreenInheritanceMode: NewScreenInheritanceMode {
+        get {
+            guard let raw = defaults.string(forKey: newScreenInheritanceModeKey),
+                  let mode = NewScreenInheritanceMode(rawValue: raw) else {
+                return .primaryScreen
+            }
+            return mode
+        }
+        set { defaults.set(newValue.rawValue, forKey: newScreenInheritanceModeKey) }
+    }
+    
+    var newScreenInheritanceScreenId: String? {
+        get { defaults.string(forKey: newScreenInheritanceScreenIdKey) }
+        set { defaults.set(newValue, forKey: newScreenInheritanceScreenIdKey) }
     }
 
     var onboardingCompleted: Bool {
