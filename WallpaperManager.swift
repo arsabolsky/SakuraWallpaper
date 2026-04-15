@@ -263,6 +263,8 @@ class WallpaperManager {
     @objc private func screensChanged() {
         let currentScreenIds = Set(NSScreen.screens.map { SettingsManager.screenIdentifier($0) })
         let existingIds = Set(players.keys)
+        let primaryScreen = primaryScreenForInheritance()
+        let primaryScreenId = primaryScreen.map { SettingsManager.screenIdentifier($0) }
 
         for removedId in existingIds.subtracting(currentScreenIds) {
             players[removedId]?.cleanup()
@@ -285,10 +287,27 @@ class WallpaperManager {
                 continue
             }
 
+            if let sourceScreen = primaryScreen,
+               let sourceId = primaryScreenId,
+               sourceId != id {
+                if let sourceConfig = SettingsManager.shared.folderConfig(for: sourceScreen),
+                   FileManager.default.fileExists(atPath: sourceConfig.folderPath) {
+                    let folderURL = URL(fileURLWithPath: sourceConfig.folderPath)
+                    setFolder(url: folderURL, for: screen, config: sourceConfig)
+                    continue
+                }
+
+                if let sourceURL = urlForScreen(sourceScreen),
+                   FileManager.default.fileExists(atPath: sourceURL.path) {
+                    setWallpaper(url: sourceURL, for: screen)
+                    continue
+                }
+            }
+
             if SettingsManager.shared.isFolderMode,
                let globalFolderPath = SettingsManager.shared.folderPath,
                FileManager.default.fileExists(atPath: globalFolderPath) {
-                let fallbackConfig = ScreenFolderConfig(
+                let globalConfig = ScreenFolderConfig(
                     folderPath: globalFolderPath,
                     rotationIntervalMinutes: SettingsManager.shared.rotationIntervalMinutes,
                     isShuffleMode: SettingsManager.shared.isShuffleMode,
@@ -296,7 +315,7 @@ class WallpaperManager {
                     includeSubfolders: SettingsManager.shared.includeSubfolders
                 )
                 let folderURL = URL(fileURLWithPath: globalFolderPath)
-                setFolder(url: folderURL, for: screen, config: fallbackConfig)
+                setFolder(url: folderURL, for: screen, config: globalConfig)
                 continue
             }
 
@@ -311,6 +330,13 @@ class WallpaperManager {
         } else {
             showAll()
         }
+    }
+
+    private func primaryScreenForInheritance() -> NSScreen? {
+        if let builtIn = NSScreen.screens.first(where: { $0.isBuiltIn }) {
+            return builtIn
+        }
+        return NSScreen.main ?? NSScreen.screens.first
     }
 
     @objc private func appBecameActive() {
