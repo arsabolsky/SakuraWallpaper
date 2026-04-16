@@ -73,6 +73,12 @@ Requirements: macOS 12.0+, Xcode Command Line Tools
 7. Click **Clear** to remove wallpaper from the selected screen
 8. Right-click the status bar icon for quick controls
 
+### System Desktop Sync Behavior
+
+- Image wallpapers are pushed to the system desktop immediately
+- Video wallpapers snapshot the current playback frame when the wallpaper changes
+- Locking the screen or starting the screen saver triggers another sync using the current on-screen content
+
 ### Battery Saver Behavior
 
 - When enabled, wallpapers auto-pause only if battery is `<=20%` and the Mac is not charging

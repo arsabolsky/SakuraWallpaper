@@ -476,6 +476,7 @@ class WallpaperManager {
             if let url = urlForScreen(screen) {
                 createOrUpdatePlayer(for: screen, url: url)
                 currentFiles[id] = url
+                syncCurrentWallpaperToSystemDesktop(for: screen)
             }
         }
 
