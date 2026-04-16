@@ -18,10 +18,20 @@ class ScreenPlayer {
         setupContent()
     }
 
+    var mediaURL: URL { fileURL }
+
     func updateMedia(url: URL) {
         self.fileURL = url
         clearContent()
         setupContent()
+    }
+
+    func currentPlaybackTime() -> CMTime? {
+        guard MediaType.detect(fileURL) == .video else { return nil }
+        let time = avPlayer?.currentTime() ?? .zero
+        let seconds = time.seconds
+        guard time.isValid, seconds.isFinite, seconds >= 0 else { return nil }
+        return time
     }
 
     private func clearContent() {

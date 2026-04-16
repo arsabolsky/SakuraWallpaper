@@ -24,6 +24,9 @@ class WallpaperManager {
     private var playlistIndexesByScreen: [String: Int] = [:]
     private var rotationTimersByScreen: [String: Timer] = [:]
     private var uiScreenID: String?
+    private let fileManager = FileManager.default
+    private let lockScreenCaptureQueue = DispatchQueue(label: "com.sakura.wallpaper.lockscreen", qos: .userInitiated)
+    private var transientDesktopSnapshotsByScreen: [String: URL] = [:]
 
     static let didRotateNotification = Notification.Name("WallpaperManagerDidRotate")
     static let playbackStateDidChangeNotification = Notification.Name("WallpaperManagerPlaybackStateDidChange")
@@ -109,6 +112,18 @@ class WallpaperManager {
             name: NSWorkspace.screensDidWakeNotification,
             object: nil
         )
+        DistributedNotificationCenter.default().addObserver(
+            self,
+            selector: #selector(handleScreenLocked(_:)),
+            name: Notification.Name("com.apple.screenIsLocked"),
+            object: nil
+        )
+        DistributedNotificationCenter.default().addObserver(
+            self,
+            selector: #selector(handleScreenLocked(_:)),
+            name: Notification.Name("com.apple.screensaver.didstart"),
+            object: nil
+        )
         startBatteryCheckTimer()
     }
 
@@ -118,6 +133,7 @@ class WallpaperManager {
         stopRotationTimer()
         NotificationCenter.default.removeObserver(self)
         NSWorkspace.shared.notificationCenter.removeObserver(self)
+        DistributedNotificationCenter.default().removeObserver(self)
     }
 
     func setUIScreen(_ screen: NSScreen?) {
@@ -243,6 +259,7 @@ class WallpaperManager {
             if let firstURL = files.first {
                 currentFiles[id] = firstURL
                 createOrUpdatePlayer(for: screen, url: firstURL)
+                syncCurrentWallpaperToSystemDesktop(for: screen)
                 if isPaused || isPausedInternally {
                     players[id]?.pausePlayback()
                     players[id]?.window?.orderOut(nil)
@@ -260,6 +277,146 @@ class WallpaperManager {
         }
     }
 
+    @objc private func handleScreenLocked(_ notification: Notification) {
+        syncCurrentWallpaperToSystemDesktop()
+    }
+
+    private func syncCurrentWallpaperToSystemDesktop() {
+        for screen in NSScreen.screens {
+            syncCurrentWallpaperToSystemDesktop(for: screen)
+        }
+    }
+
+    private func syncCurrentWallpaperToSystemDesktop(for screen: NSScreen) {
+        let id = SettingsManager.screenIdentifier(screen)
+        if let player = players[id] {
+            syncCurrentPlayerToSystemDesktop(player, for: screen, screenID: id)
+            return
+        }
+
+        guard let mediaURL = currentFiles[id] ?? urlForScreen(screen) else { return }
+        applySystemDesktopWallpaper(for: screen, screenID: id, mediaURL: mediaURL, playbackTime: nil)
+    }
+
+    private func syncCurrentPlayerToSystemDesktop(_ player: ScreenPlayer, for screen: NSScreen, screenID: String) {
+        let mediaURL = player.mediaURL
+        let playbackTime = player.currentPlaybackTime()
+        applySystemDesktopWallpaper(for: screen, screenID: screenID, mediaURL: mediaURL, playbackTime: playbackTime)
+    }
+
+    private func applySystemDesktopWallpaper(for screen: NSScreen, screenID: String, mediaURL: URL, playbackTime: CMTime?) {
+        switch MediaType.detect(mediaURL) {
+        case .image:
+            clearTransientDesktopSnapshot(for: screenID)
+            applyDesktopImage(at: mediaURL, for: screen, screenID: screenID)
+        case .video:
+            let outputURL = makeTransientSnapshotURL(for: screenID)
+            let targetSize = CGSize(
+                width: max(screen.frame.width * screen.backingScaleFactor, 1920),
+                height: max(screen.frame.height * screen.backingScaleFactor, 1080)
+            )
+
+            lockScreenCaptureQueue.async { [weak self] in
+                guard let self else { return }
+                guard let snapshotURL = self.createDesktopSnapshot(from: mediaURL, at: playbackTime, outputURL: outputURL, maxSize: targetSize) else {
+                    return
+                }
+
+                DispatchQueue.main.async { [weak self] in
+                    guard let self else { return }
+                    guard self.currentMediaURL(forScreenID: screenID) == mediaURL else {
+                        try? self.fileManager.removeItem(at: snapshotURL)
+                        return
+                    }
+                    self.replaceTransientDesktopSnapshot(for: screenID, with: snapshotURL)
+                    self.applyDesktopImage(at: snapshotURL, for: screen, screenID: screenID)
+                }
+            }
+        case .unsupported:
+            break
+        }
+    }
+
+    private func applyDesktopImage(at imageURL: URL, for screen: NSScreen, screenID: String) {
+        do {
+            let options = NSWorkspace.shared.desktopImageOptions(for: screen) ?? [:]
+            try NSWorkspace.shared.setDesktopImageURL(imageURL, for: screen, options: options)
+        } catch {
+            print("Failed to set system desktop image for \(screenID): \(error)")
+        }
+    }
+
+    private func createDesktopSnapshot(from mediaURL: URL, at playbackTime: CMTime?, outputURL: URL, maxSize: CGSize) -> URL? {
+        let asset = AVURLAsset(url: mediaURL)
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.maximumSize = maxSize
+        generator.requestedTimeToleranceBefore = .zero
+        generator.requestedTimeToleranceAfter = .zero
+
+        let targetTime = normalizedSnapshotTime(playbackTime)
+        if let cgImage = copyImage(using: generator, at: targetTime) ?? copyImage(using: generator, at: .zero) {
+            return writeDesktopSnapshot(cgImage, to: outputURL)
+        }
+
+        print("Failed to create current-frame snapshot from \(mediaURL.lastPathComponent)")
+        return nil
+    }
+
+    private func normalizedSnapshotTime(_ playbackTime: CMTime?) -> CMTime {
+        guard let playbackTime else {
+            return .zero
+        }
+        let seconds = playbackTime.seconds
+        guard playbackTime.isValid, seconds.isFinite, seconds >= 0 else {
+            return .zero
+        }
+        return playbackTime
+    }
+
+    private func makeTransientSnapshotURL(for screenID: String) -> URL {
+        let directory = fileManager.temporaryDirectory.appendingPathComponent("SakuraWallpaper", isDirectory: true)
+        return directory.appendingPathComponent("lockscreen-current-\(screenID)-\(UUID().uuidString).jpg")
+    }
+
+    private func replaceTransientDesktopSnapshot(for screenID: String, with newURL: URL) {
+        let previousURL = transientDesktopSnapshotsByScreen.updateValue(newURL, forKey: screenID)
+        if let previousURL, previousURL != newURL {
+            try? fileManager.removeItem(at: previousURL)
+        }
+    }
+
+    private func clearTransientDesktopSnapshot(for screenID: String) {
+        guard let previousURL = transientDesktopSnapshotsByScreen.removeValue(forKey: screenID) else { return }
+        try? fileManager.removeItem(at: previousURL)
+    }
+
+    private func clearAllTransientDesktopSnapshots() {
+        let snapshotURLs = Array(transientDesktopSnapshotsByScreen.values)
+        transientDesktopSnapshotsByScreen.removeAll()
+        snapshotURLs.forEach { try? fileManager.removeItem(at: $0) }
+    }
+
+    private func copyImage(using generator: AVAssetImageGenerator, at time: CMTime) -> CGImage? {
+        try? generator.copyCGImage(at: time, actualTime: nil)
+    }
+
+    private func writeDesktopSnapshot(_ image: CGImage, to outputURL: URL) -> URL? {
+        let bitmap = NSBitmapImageRep(cgImage: image)
+        guard let data = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.92]) else {
+            return nil
+        }
+
+        do {
+            try fileManager.createDirectory(at: outputURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try data.write(to: outputURL, options: .atomic)
+            return outputURL
+        } catch {
+            print("Failed to write current-frame snapshot: \(error)")
+            return nil
+        }
+    }
+
     @objc private func screensChanged() {
         let currentScreenIds = Set(NSScreen.screens.map { SettingsManager.screenIdentifier($0) })
         let existingIds = Set(players.keys)
@@ -272,6 +429,7 @@ class WallpaperManager {
             playlistIndexesByScreen.removeValue(forKey: removedId)
             stopRotationTimer(forScreenID: removedId)
             pausedScreens.remove(removedId)
+            clearTransientDesktopSnapshot(for: removedId)
         }
 
         for screen in NSScreen.screens {
@@ -439,6 +597,7 @@ class WallpaperManager {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
             guard let self else { return }
             self.createOrUpdatePlayer(for: screen, url: url)
+            self.syncCurrentWallpaperToSystemDesktop(for: screen)
             if self.isPaused {
                 self.players[id]?.pausePlayback()
                 self.players[id]?.window?.orderOut(nil)
@@ -463,6 +622,7 @@ class WallpaperManager {
         pausedScreens.removeAll()
         playlistsByScreen.removeAll()
         playlistIndexesByScreen.removeAll()
+        clearAllTransientDesktopSnapshots()
     }
 
     func stopWallpaper(for screen: NSScreen) {
@@ -474,6 +634,7 @@ class WallpaperManager {
         playlistsByScreen.removeValue(forKey: id)
         playlistIndexesByScreen.removeValue(forKey: id)
         stopRotationTimer(forScreenID: id)
+        clearTransientDesktopSnapshot(for: id)
         SettingsManager.shared.setWallpaper(path: nil, for: screen)
         SettingsManager.shared.clearFolderConfig(for: screen)
         if players.isEmpty { stopKeepVisibleTimer() }
@@ -496,6 +657,9 @@ class WallpaperManager {
             if isPaused || isPausedInternally {
                 player.pausePlayback()
             }
+        }
+        if let screen = screen(forScreenID: id) {
+            syncCurrentWallpaperToSystemDesktop(for: screen)
         }
         NotificationCenter.default.post(name: WallpaperManager.didRotateNotification, object: nil)
     }
@@ -521,13 +685,24 @@ class WallpaperManager {
                 player.pausePlayback()
             }
         }
+        if let screen = screen(forScreenID: id) {
+            syncCurrentWallpaperToSystemDesktop(for: screen)
+        }
         PerformanceMonitor.shared.end(token, extra: "screen=\(id) file=\(nextURL.lastPathComponent)")
         NotificationCenter.default.post(name: WallpaperManager.didRotateNotification, object: nil)
     }
 
     private func folderConfig(forScreenID id: String) -> ScreenFolderConfig? {
-        guard let screen = NSScreen.screens.first(where: { SettingsManager.screenIdentifier($0) == id }) else { return nil }
+        guard let screen = screen(forScreenID: id) else { return nil }
         return SettingsManager.shared.folderConfig(for: screen)
+    }
+
+    private func screen(forScreenID id: String) -> NSScreen? {
+        NSScreen.screens.first(where: { SettingsManager.screenIdentifier($0) == id })
+    }
+
+    private func currentMediaURL(forScreenID id: String) -> URL? {
+        players[id]?.mediaURL ?? currentFiles[id]
     }
 
     private func startRotationTimer(forScreenID id: String) {

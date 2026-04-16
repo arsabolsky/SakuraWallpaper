@@ -9,6 +9,7 @@ Current version: `v1.0.1`
 ## Features
 
 - Set videos (MP4, MOV, GIF) or images (PNG, JPG, HEIC, WebP) as desktop wallpaper
+- **System Desktop Sync**: Images are applied directly as the system desktop picture; videos sync the currently playing frame to the system desktop on wallpaper changes and lock/screen saver start
 - **Rotation Mode**: Select a folder to automatically cycle through wallpapers
 - **Per-Screen Independent Rotation**: Each display can keep its own folder path, playlist, interval, and shuffle state
 - **Playlist Previews**: Interactive grid view with live previews of the currently selected item
