@@ -258,18 +258,9 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
     @objc private func applyToAllScreens() {
         if let sourceScreen = selectedScreen,
            let config = SettingsManager.shared.folderConfig(for: sourceScreen) {
-            // If the user has manually navigated to a specific file within the folder,
-            // use that file as the sync source rather than resetting to the folder default.
-            let sourceScreenID = SettingsManager.screenIdentifier(sourceScreen)
-            if let manualFile = wallpaperManager.currentFiles[sourceScreenID] {
-                for targetScreen in NSScreen.screens {
-                    wallpaperManager.setWallpaper(url: manualFile, for: targetScreen)
-                }
-            } else {
-                let folderURL = URL(fileURLWithPath: config.folderPath)
-                for targetScreen in NSScreen.screens {
-                    wallpaperManager.setFolder(url: folderURL, for: targetScreen, config: config)
-                }
+            let folderURL = URL(fileURLWithPath: config.folderPath)
+            for targetScreen in NSScreen.screens {
+                wallpaperManager.setFolder(url: folderURL, for: targetScreen, config: config)
             }
         } else if let url = wallpaperManager.currentFile {
             wallpaperManager.setWallpaper(url: url)
