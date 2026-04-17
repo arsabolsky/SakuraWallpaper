@@ -27,6 +27,7 @@ class WallpaperManager {
     private let fileManager = FileManager.default
     private let lockScreenCaptureQueue = DispatchQueue(label: "com.sakura.wallpaper.lockscreen", qos: .userInitiated)
     private var transientDesktopSnapshotsByScreen: [String: URL] = [:]
+    private var screensChangedWorkItem: DispatchWorkItem?
 
     static let didRotateNotification = Notification.Name("WallpaperManagerDidRotate")
     static let playbackStateDidChangeNotification = Notification.Name("WallpaperManagerPlaybackStateDidChange")
@@ -66,7 +67,7 @@ class WallpaperManager {
     init() {
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(screensChanged),
+            selector: #selector(screensChangedDebounced),
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil
         )
@@ -415,6 +416,13 @@ class WallpaperManager {
             print("Failed to write current-frame snapshot: \(error)")
             return nil
         }
+    }
+
+    @objc private func screensChangedDebounced() {
+        screensChangedWorkItem?.cancel()
+        let item = DispatchWorkItem { [weak self] in self?.screensChanged() }
+        screensChangedWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: item)
     }
 
     @objc private func screensChanged() {
