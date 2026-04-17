@@ -224,6 +224,11 @@ class WallpaperManager {
         }
     }
 
+    func selectPlaylistItem(at index: Int, for screen: NSScreen) {
+        let id = SettingsManager.screenIdentifier(screen)
+        selectPlaylistItem(at: index, forScreenID: id)
+    }
+
     func setFolder(url: URL) {
         let baseConfig = ScreenFolderConfig(
             folderPath: url.path,
