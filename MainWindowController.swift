@@ -97,7 +97,7 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
 
     init(wallpaperManager: WallpaperManager) {
         self.wallpaperManager = wallpaperManager
-        self.selectedScreen = NSScreen.main
+        self.selectedScreen = NSScreen.screens.first(where: { $0.isBuiltIn }) ?? NSScreen.main
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 500, height: 746),
             styleMask: [.titled, .closable, .miniaturizable],
