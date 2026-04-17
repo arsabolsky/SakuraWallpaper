@@ -49,7 +49,7 @@ jobs:
 
             ### Homebrew
             ```
-            brew install --cask sakurawallpaper
+            brew install --cask yueseqaz/tap/sakura-wallpaper
             ```
 
             ---
@@ -57,3 +57,19 @@ jobs:
           files: SakuraWallpaper.dmg
           draft: false
           prerelease: false
+
+      - name: Update Homebrew tap
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+          SHA256: ${{ steps.sha.outputs.SHA256 }}
+        run: |
+          git clone https://x-access-token:${TAP_TOKEN}@github.com/yueseqaz/homebrew-tap.git
+          cd homebrew-tap
+          sed -i '' "s/version \".*\"/version \"${VERSION}\"/" Casks/sakura-wallpaper.rb
+          sed -i '' "s/sha256 \".*\"/sha256 \"${SHA256}\"/" Casks/sakura-wallpaper.rb
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/sakura-wallpaper.rb
+          git commit -m "chore: update sakura-wallpaper to v${VERSION}"
+          git push
