@@ -225,28 +225,23 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
     private func updateScreenMenu() {
         screenPopUp.removeAllItems()
 
-        // Sort screens: built-in display first, then external displays by name
-        let sortedScreens = NSScreen.screens.sorted { a, b in
-            if a.isBuiltIn != b.isBuiltIn { return a.isBuiltIn }
-            return a.localizedName < b.localizedName
-        }
-
-        for (index, screen) in sortedScreens.enumerated() {
+        // Individual Screens
+        for (index, screen) in NSScreen.screens.enumerated() {
             let displayName: String
             if #available(macOS 10.15, *) {
                 displayName = screen.localizedName
             } else {
                 displayName = "screen.display".localized(index + 1)
             }
-            let suffix = screen.isBuiltIn ? "screen.builtIn".localized : ""
+            let isBuiltIn = screen.isBuiltIn
+            let suffix = isBuiltIn ? "screen.builtIn".localized : ""
             screenPopUp.addItem(withTitle: "\(displayName)\(suffix)")
             screenPopUp.lastItem?.representedObject = screen
         }
 
-        if let selected = selectedScreen,
-           let index = sortedScreens.firstIndex(of: selected) {
+        if let selected = selectedScreen, let index = NSScreen.screens.firstIndex(of: selected) {
             screenPopUp.selectItem(at: index)
-        } else if let first = sortedScreens.first {
+        } else if let first = NSScreen.screens.first {
             selectedScreen = first
             screenPopUp.selectItem(at: 0)
         } else {
