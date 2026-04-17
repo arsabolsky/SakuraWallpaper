@@ -270,19 +270,18 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
                     wallpaperManager.setFolder(url: folderURL, for: targetScreen, config: config)
                 }
             } else {
-                // Rotation is off — user has manually selected a specific file;
-                // sync that file to all screens
+                // Rotation is off — user has manually selected a specific file.
+                // Sync the folder config to all screens (preserving folder mode),
+                // then jump each screen to the same playlist index.
                 let sourceScreenID = SettingsManager.screenIdentifier(sourceScreen)
-                if let manualFile = wallpaperManager.currentFiles[sourceScreenID] {
-                    for targetScreen in NSScreen.screens {
-                        wallpaperManager.setWallpaper(url: manualFile, for: targetScreen)
-                    }
-                } else {
-                    // No current file tracked yet, fall back to folder config
-                    let folderURL = URL(fileURLWithPath: config.folderPath)
-                    for targetScreen in NSScreen.screens {
-                        wallpaperManager.setFolder(url: folderURL, for: targetScreen, config: config)
-                    }
+                let currentIndex = wallpaperManager.currentPlaylistIndex
+                let folderURL = URL(fileURLWithPath: config.folderPath)
+                for targetScreen in NSScreen.screens {
+                    wallpaperManager.setFolder(url: folderURL, for: targetScreen, config: config)
+                }
+                // After syncing folders, select the same item on all screens
+                if wallpaperManager.currentFiles[sourceScreenID] != nil {
+                    wallpaperManager.selectPlaylistItem(at: currentIndex)
                 }
             }
         } else if let url = wallpaperManager.currentFile {
