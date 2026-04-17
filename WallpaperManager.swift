@@ -477,6 +477,8 @@ class WallpaperManager {
                FileManager.default.fileExists(atPath: config.folderPath) {
                 let folderURL = URL(fileURLWithPath: config.folderPath)
                 setFolder(url: folderURL, for: screen, config: config)
+                // Sync playlist index to any existing screen with the same folder
+                syncPlaylistIndex(for: screen, screenID: id, folderPath: config.folderPath)
                 continue
             }
 
@@ -485,6 +487,11 @@ class WallpaperManager {
                    FileManager.default.fileExists(atPath: sourceConfig.folderPath) {
                     let folderURL = URL(fileURLWithPath: sourceConfig.folderPath)
                     setFolder(url: folderURL, for: screen, config: sourceConfig)
+                    // Sync playlist index to the source screen
+                    let sourceID = SettingsManager.screenIdentifier(sourceScreen)
+                    if let sourceIndex = playlistIndexesByScreen[sourceID] {
+                        selectPlaylistItem(at: sourceIndex, forScreenID: id)
+                    }
                     continue
                 }
 
@@ -507,6 +514,8 @@ class WallpaperManager {
                 )
                 let folderURL = URL(fileURLWithPath: globalFolderPath)
                 setFolder(url: folderURL, for: screen, config: globalConfig)
+                // Sync playlist index to any existing screen with the same folder
+                syncPlaylistIndex(for: screen, screenID: id, folderPath: globalFolderPath)
                 continue
             }
 
@@ -532,6 +541,21 @@ class WallpaperManager {
             guard let player = players[id] else { continue }
             if player.window?.frame != screen.frame {
                 player.resize(to: screen)
+            }
+        }
+    }
+
+    /// Syncs the playlist index of a newly reconnected screen to match any existing
+    /// screen that is playing from the same folder path, so rotation stays in sync.
+    private func syncPlaylistIndex(for screen: NSScreen, screenID: String, folderPath: String) {
+        // Find another screen with the same folder that already has a playlist index
+        for (existingID, existingIndex) in playlistIndexesByScreen {
+            guard existingID != screenID else { continue }
+            if let existingConfig = SettingsManager.shared.folderConfig(
+                for: NSScreen.screens.first(where: { SettingsManager.screenIdentifier($0) == existingID }) ?? screen
+            ), existingConfig.folderPath == folderPath {
+                selectPlaylistItem(at: existingIndex, forScreenID: screenID)
+                return
             }
         }
     }
