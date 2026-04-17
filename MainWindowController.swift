@@ -263,9 +263,27 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
     @objc private func applyToAllScreens() {
         if let sourceScreen = selectedScreen,
            let config = SettingsManager.shared.folderConfig(for: sourceScreen) {
-            let folderURL = URL(fileURLWithPath: config.folderPath)
-            for targetScreen in NSScreen.screens {
-                wallpaperManager.setFolder(url: folderURL, for: targetScreen, config: config)
+            if config.isRotationEnabled {
+                // Rotation is on — sync the folder config to all screens
+                let folderURL = URL(fileURLWithPath: config.folderPath)
+                for targetScreen in NSScreen.screens {
+                    wallpaperManager.setFolder(url: folderURL, for: targetScreen, config: config)
+                }
+            } else {
+                // Rotation is off — user has manually selected a specific file;
+                // sync that file to all screens
+                let sourceScreenID = SettingsManager.screenIdentifier(sourceScreen)
+                if let manualFile = wallpaperManager.currentFiles[sourceScreenID] {
+                    for targetScreen in NSScreen.screens {
+                        wallpaperManager.setWallpaper(url: manualFile, for: targetScreen)
+                    }
+                } else {
+                    // No current file tracked yet, fall back to folder config
+                    let folderURL = URL(fileURLWithPath: config.folderPath)
+                    for targetScreen in NSScreen.screens {
+                        wallpaperManager.setFolder(url: folderURL, for: targetScreen, config: config)
+                    }
+                }
             }
         } else if let url = wallpaperManager.currentFile {
             wallpaperManager.setWallpaper(url: url)
