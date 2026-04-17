@@ -894,7 +894,6 @@ class WallpaperManager {
             player.updateMedia(url: url)
         } else {
             let player = ScreenPlayer(fileURL: url, screen: screen)
-            player.setVolume(0)
             players[id] = player
         }
     }

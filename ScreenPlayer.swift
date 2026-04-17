@@ -142,10 +142,6 @@ class ScreenPlayer {
         window?.orderBack(nil)
     }
 
-    func setVolume(_ volume: Float) {
-        avPlayer?.volume = volume
-    }
-
     func resumePlayback() {
         guard let player = avPlayer else { return }
         let currentTime = player.currentTime()
