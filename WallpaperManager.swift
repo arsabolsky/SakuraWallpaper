@@ -312,13 +312,17 @@ class WallpaperManager {
             applyDesktopImage(at: mediaURL, for: screen, screenID: screenID)
         case .video:
             let outputURL = makeTransientSnapshotURL(for: screenID)
-            let targetSize = CGSize(
-                width: max(screen.frame.width * screen.backingScaleFactor, 1920),
-                height: max(screen.frame.height * screen.backingScaleFactor, 1080)
-            )
 
             lockScreenCaptureQueue.async { [weak self] in
                 guard let self else { return }
+                // Re-read live screen geometry at execution time rather than using the
+                // value captured at dispatch time — prevents stale-geometry snapshots
+                // when the display configuration changes between dispatch and execution (Bug 4 fix).
+                let liveScreen = NSScreen.screens.first(where: { SettingsManager.screenIdentifier($0) == screenID }) ?? screen
+                let targetSize = CGSize(
+                    width: max(liveScreen.frame.width * liveScreen.backingScaleFactor, 1920),
+                    height: max(liveScreen.frame.height * liveScreen.backingScaleFactor, 1080)
+                )
                 guard let snapshotURL = self.createDesktopSnapshot(from: mediaURL, at: playbackTime, outputURL: outputURL, maxSize: targetSize) else {
                     return
                 }
@@ -330,7 +334,8 @@ class WallpaperManager {
                         return
                     }
                     self.replaceTransientDesktopSnapshot(for: screenID, with: snapshotURL)
-                    self.applyDesktopImage(at: snapshotURL, for: screen, screenID: screenID)
+                    let applyScreen = NSScreen.screens.first(where: { SettingsManager.screenIdentifier($0) == screenID }) ?? screen
+                    self.applyDesktopImage(at: snapshotURL, for: applyScreen, screenID: screenID)
                 }
             }
         case .unsupported:
