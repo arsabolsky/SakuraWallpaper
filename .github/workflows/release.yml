@@ -1,0 +1,56 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          brew install create-dmg
+          pip3 install Pillow --break-system-packages
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Update version in build.sh
+        run: sed -i '' "s/APP_VERSION=\".*\"/APP_VERSION=\"${{ steps.version.outputs.VERSION }}\"/" build.sh
+
+      - name: Build DMG
+        run: ./build.sh dmg
+
+      - name: Compute SHA256
+        id: sha
+        run: echo "SHA256=$(shasum -a 256 SakuraWallpaper.dmg | awk '{print $1}')" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "SakuraWallpaper ${{ github.ref_name }}"
+          body: |
+            ## SakuraWallpaper ${{ github.ref_name }}
+
+            ### Install
+            Download `SakuraWallpaper.dmg` below, open it, and drag the app to Applications.
+
+            > **Note**: The app is unsigned. On first launch, right-click → Open to bypass Gatekeeper.
+
+            ### Homebrew
+            ```
+            brew install --cask sakurawallpaper
+            ```
+
+            ---
+            **SHA256**: `${{ steps.sha.outputs.SHA256 }}`
+          files: SakuraWallpaper.dmg
+          draft: false
+          prerelease: false
