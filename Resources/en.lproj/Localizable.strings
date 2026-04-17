@@ -27,7 +27,7 @@
 "ui.notSet" = "None";
 "ui.launchAtLogin" = "Launch at Login";
 "ui.pauseWhenInvisible" = "Battery Saver";
-"ui.syncDesktopWallpaper" = "Sync Desktop Wallpaper";
+"ui.syncDesktopWallpaper" = "Set Static Wallpaper (Lock Screen & Desktop)";
 "ui.rotationInterval" = "Interval";
 "ui.enableRotation" = "Enable Rotation";
 "ui.folderMode" = "Rotation Mode";

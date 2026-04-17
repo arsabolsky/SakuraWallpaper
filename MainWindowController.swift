@@ -494,7 +494,7 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         syncDesktopSwitch = NSButton(checkboxWithTitle: "ui.syncDesktopWallpaper".localized,
                                      target: self, action: #selector(syncDesktopSwitchChanged))
         syncDesktopSwitch.font = NSFont.systemFont(ofSize: 12)
-        syncDesktopSwitch.frame = NSRect(x: 0, y: 130, width: 300, height: 20)
+        syncDesktopSwitch.frame = NSRect(x: 0, y: 130, width: 380, height: 20)
         syncDesktopSwitch.state = SettingsManager.shared.syncDesktopWallpaper ? .on : .off
         settings.addSubview(syncDesktopSwitch)
 
