@@ -162,6 +162,7 @@ class WallpaperManager {
     public private(set) var isPausedInternally: Bool = false
 
     func startRotationTimer() {
+        stopSyncGroupTimer()
         for screen in NSScreen.screens {
             let id = SettingsManager.screenIdentifier(screen)
             let config = SettingsManager.shared.screenConfig(for: id)
@@ -174,14 +175,28 @@ class WallpaperManager {
     }
 
     @objc func nextWallpaper() {
-        for id in playlistsByScreen.keys {
+        // Advance sync group as a unit
+        let syncedIDs = Set(NSScreen.screens
+            .map { SettingsManager.screenIdentifier($0) }
+            .filter { SettingsManager.shared.screenConfig(for: $0).isSynced })
+        if !syncedIDs.isEmpty {
+            advanceSyncGroup()
+        }
+        // Advance each independent (non-synced) screen individually
+        for id in playlistsByScreen.keys where !syncedIDs.contains(id) {
             nextWallpaper(forScreenID: id)
         }
     }
 
     func nextWallpaper(for screen: NSScreen) {
         let id = SettingsManager.screenIdentifier(screen)
-        nextWallpaper(forScreenID: id)
+        let config = SettingsManager.shared.screenConfig(for: id)
+        if config.isSynced {
+            // Advance the entire sync group together
+            advanceSyncGroup()
+        } else {
+            nextWallpaper(forScreenID: id)
+        }
     }
 
     func canGoNextWallpaper(for screen: NSScreen) -> Bool {
@@ -210,7 +225,47 @@ class WallpaperManager {
 
     func selectPlaylistItem(at index: Int, for screen: NSScreen) {
         let id = SettingsManager.screenIdentifier(screen)
+        let config = SettingsManager.shared.screenConfig(for: id)
+        
         selectPlaylistItem(at: index, forScreenID: id)
+        
+        if config.isSynced {
+            let syncedScreens = NSScreen.screens.filter {
+                let sid = SettingsManager.screenIdentifier($0)
+                return sid != id && SettingsManager.shared.screenConfig(for: sid).isSynced
+            }
+            for syncedScreen in syncedScreens {
+                let sid = SettingsManager.screenIdentifier(syncedScreen)
+                selectPlaylistItem(at: index, forScreenID: sid)
+            }
+        }
+    }
+
+    // MARK: - Centralized Sync Group Propagation
+
+    /// Propagates settings from the source screen to all other synced screens.
+    /// Call this after updating a screen's config when the change should be
+    /// reflected across the entire sync group.
+    func propagateSettingsToSyncGroup(fromScreenID sourceID: String) {
+        let sourceConfig = SettingsManager.shared.screenConfig(for: sourceID)
+        guard sourceConfig.isSynced else { return }
+
+        let syncedScreens = NSScreen.screens.filter {
+            let sid = SettingsManager.screenIdentifier($0)
+            return sid != sourceID && SettingsManager.shared.screenConfig(for: sid).isSynced
+        }
+        for syncedScreen in syncedScreens {
+            let sid = SettingsManager.screenIdentifier(syncedScreen)
+            var syncedConfig = SettingsManager.shared.screenConfig(for: sid)
+            syncedConfig.folderPath = sourceConfig.folderPath
+            syncedConfig.wallpaperPath = sourceConfig.wallpaperPath
+            syncedConfig.rotationIntervalMinutes = sourceConfig.rotationIntervalMinutes
+            syncedConfig.isShuffleMode = sourceConfig.isShuffleMode
+            syncedConfig.isRotationEnabled = sourceConfig.isRotationEnabled
+            syncedConfig.includeSubfolders = sourceConfig.includeSubfolders
+            syncedConfig.isFolderMode = sourceConfig.isFolderMode
+            SettingsManager.shared.setScreenConfig(syncedConfig, for: sid)
+        }
     }
 
     func setFolder(url: URL, for screen: NSScreen, config: Screen_Config) {
@@ -229,21 +284,16 @@ class WallpaperManager {
             SettingsManager.shared.setScreenConfig(updatedConfig, for: id)
             SettingsManager.shared.addToHistory(url.path)
 
-            // Propagate to all other synced screens if this screen is synced
+            // Propagate settings and rebuild playlists for synced peers
             if updatedConfig.isSynced {
+                propagateSettingsToSyncGroup(fromScreenID: id)
                 let syncedScreens = NSScreen.screens.filter {
                     let sid = SettingsManager.screenIdentifier($0)
                     return sid != id && SettingsManager.shared.screenConfig(for: sid).isSynced
                 }
                 for syncedScreen in syncedScreens {
                     let sid = SettingsManager.screenIdentifier(syncedScreen)
-                    var syncedConfig = SettingsManager.shared.screenConfig(for: sid)
-                    syncedConfig.folderPath = updatedConfig.folderPath
-                    syncedConfig.rotationIntervalMinutes = updatedConfig.rotationIntervalMinutes
-                    syncedConfig.isShuffleMode = updatedConfig.isShuffleMode
-                    syncedConfig.isRotationEnabled = updatedConfig.isRotationEnabled
-                    SettingsManager.shared.setScreenConfig(syncedConfig, for: sid)
-                    // Rebuild playlist for synced screen
+                    let syncedConfig = SettingsManager.shared.screenConfig(for: sid)
                     if let syncedFiles = try? PlaylistBuilder.collectMediaFiles(in: url, includeSubfolders: syncedConfig.includeSubfolders) {
                         playlistsByScreen[sid] = syncedFiles
                         playlistIndexesByScreen[sid] = 0
@@ -678,15 +728,45 @@ class WallpaperManager {
     }
 
     private func advanceSyncGroup() {
-        syncGroupPlaylistIndex += 1
-        let syncedScreens = NSScreen.screens.filter {
-            SettingsManager.shared.screenConfig(for: SettingsManager.screenIdentifier($0)).isSynced
+        let syncedScreenIDs = NSScreen.screens
+            .filter { SettingsManager.shared.screenConfig(for: SettingsManager.screenIdentifier($0)).isSynced }
+            .map { SettingsManager.screenIdentifier($0) }
+
+        guard !syncedScreenIDs.isEmpty else { return }
+
+        // Use the first synced screen's playlist to compute ONE shared next index
+        guard let referenceID = syncedScreenIDs.first,
+              let referenceList = playlistsByScreen[referenceID],
+              !referenceList.isEmpty else { return }
+
+        let config = SettingsManager.shared.screenConfig(for: referenceID)
+        guard config.isRotationEnabled else { return }
+
+        let currentIndex = playlistIndexesByScreen[referenceID] ?? 0
+        let nextIndex = PlaylistBuilder.nextIndex(
+            currentIndex: currentIndex,
+            itemCount: referenceList.count,
+            shuffle: config.isShuffleMode
+        )
+        syncGroupPlaylistIndex = nextIndex
+
+        // Apply the same index to ALL synced screens
+        for sid in syncedScreenIDs {
+            guard let list = playlistsByScreen[sid], nextIndex < list.count else { continue }
+            playlistIndexesByScreen[sid] = nextIndex
+            let nextURL = list[nextIndex]
+            currentFiles[sid] = nextURL
+            if let player = players[sid] {
+                player.updateMedia(url: nextURL)
+                if isPaused || isPausedInternally || pausedScreens.contains(sid) {
+                    player.pausePlayback()
+                }
+            }
+            if let screen = screen(forScreenID: sid) {
+                syncCurrentWallpaperToSystemDesktop(for: screen)
+            }
         }
-        for screen in syncedScreens {
-            let id = SettingsManager.screenIdentifier(screen)
-            nextWallpaper(forScreenID: id)
-            syncGroupPlaylistIndex = playlistIndexesByScreen[id] ?? syncGroupPlaylistIndex
-        }
+        NotificationCenter.default.post(name: WallpaperManager.didRotateNotification, object: nil)
     }
 
     private func startIndependentTimer(forScreenID id: String) {
@@ -740,13 +820,47 @@ class WallpaperManager {
         SettingsManager.shared.addToHistory(url.path)
         currentFiles[id] = url
 
+        // Propagate config and tear down synced peers' playlists/players
+        if config.isSynced {
+            propagateSettingsToSyncGroup(fromScreenID: id)
+            let syncedScreens = NSScreen.screens.filter {
+                let sid = SettingsManager.screenIdentifier($0)
+                return sid != id && SettingsManager.shared.screenConfig(for: sid).isSynced
+            }
+            for syncedScreen in syncedScreens {
+                let sid = SettingsManager.screenIdentifier(syncedScreen)
+                stopIndependentTimer(forScreenID: sid)
+                playlistsByScreen.removeValue(forKey: sid)
+                playlistIndexesByScreen.removeValue(forKey: sid)
+                players[sid]?.cleanup()
+                players.removeValue(forKey: sid)
+                currentFiles[sid] = url
+            }
+        }
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
             guard let self else { return }
             self.createOrUpdatePlayer(for: screen, url: url)
             self.syncCurrentWallpaperToSystemDesktop(for: screen)
-            if self.isPaused {
+            if self.isPaused || self.pausedScreens.contains(id) {
                 self.players[id]?.pausePlayback()
                 self.players[id]?.window?.orderOut(nil)
+            }
+            
+            if config.isSynced {
+                let syncedScreens = NSScreen.screens.filter {
+                    let sid = SettingsManager.screenIdentifier($0)
+                    return sid != id && SettingsManager.shared.screenConfig(for: sid).isSynced
+                }
+                for syncedScreen in syncedScreens {
+                    let sid = SettingsManager.screenIdentifier(syncedScreen)
+                    self.createOrUpdatePlayer(for: syncedScreen, url: url)
+                    self.syncCurrentWallpaperToSystemDesktop(for: syncedScreen)
+                    if self.isPaused || self.pausedScreens.contains(sid) {
+                        self.players[sid]?.pausePlayback()
+                        self.players[sid]?.window?.orderOut(nil)
+                    }
+                }
             }
             self.startKeepVisibleTimer()
         }

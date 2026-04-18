@@ -149,27 +149,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard FileManager.default.fileExists(atPath: path, isDirectory: &isDir) else { return }
         let url = URL(fileURLWithPath: path)
         
-        if isDir.boolValue {
-            // Apply folder to all screens
-            for screen in NSScreen.screens {
-                let id = SettingsManager.screenIdentifier(screen)
+        // Track which screens we've already handled via sync group propagation
+        var handledScreenIDs = Set<String>()
+        
+        for screen in NSScreen.screens {
+            let id = SettingsManager.screenIdentifier(screen)
+            if handledScreenIDs.contains(id) { continue }
+            
+            if isDir.boolValue {
                 var config = SettingsManager.shared.screenConfig(for: id)
                 config.folderPath = url.path
                 config.isFolderMode = true
                 wallpaperManager.setFolder(url: url, for: screen, config: config)
+            } else {
+                wallpaperManager.setWallpaper(url: url, for: screen)
             }
-        } else {
-            // Apply single wallpaper to all screens
-            for screen in NSScreen.screens {
-                let id = SettingsManager.screenIdentifier(screen)
-                var config = SettingsManager.shared.screenConfig(for: id)
-                config.wallpaperPath = url.path
-                config.isFolderMode = false
-                config.isRotationEnabled = false
-                config.isShuffleMode = false
-                SettingsManager.shared.setScreenConfig(config, for: id)
+            
+            // Mark this screen and all its synced peers as handled
+            handledScreenIDs.insert(id)
+            let config = SettingsManager.shared.screenConfig(for: id)
+            if config.isSynced {
+                for otherScreen in NSScreen.screens {
+                    let otherId = SettingsManager.screenIdentifier(otherScreen)
+                    if SettingsManager.shared.screenConfig(for: otherId).isSynced {
+                        handledScreenIDs.insert(otherId)
+                    }
+                }
             }
-            wallpaperManager.setWallpaper(url: url)
         }
         
         mainWindow.updateUI()

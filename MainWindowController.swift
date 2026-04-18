@@ -246,7 +246,10 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
                 displayName = "screen.display".localized(index + 1)
             }
             let suffix = screen.isBuiltIn ? "screen.builtIn".localized : ""
-            screenPopUp.addItem(withTitle: "\(displayName)\(suffix)")
+            let id = SettingsManager.screenIdentifier(screen)
+            let isLinked = SettingsManager.shared.screenConfig(for: id).isSynced
+            let linkIndicator = isLinked ? " 🔗" : ""
+            screenPopUp.addItem(withTitle: "\(displayName)\(suffix)\(linkIndicator)")
             screenPopUp.lastItem?.representedObject = screen
         }
 
@@ -725,6 +728,7 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
             wallpaperManager.setFolder(url: URL(fileURLWithPath: folderPath), for: screen, config: config)
         } else {
             SettingsManager.shared.setScreenConfig(config, for: id)
+            wallpaperManager.propagateSettingsToSyncGroup(fromScreenID: id)
         }
         updateUI()
     }
@@ -735,6 +739,7 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         var config = SettingsManager.shared.screenConfig(for: id)
         config.isShuffleMode = (sender.state == .on)
         SettingsManager.shared.setScreenConfig(config, for: id)
+        wallpaperManager.propagateSettingsToSyncGroup(fromScreenID: id)
         wallpaperManager.startRotationTimer()
         updateUI()
     }
@@ -745,6 +750,7 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         var config = SettingsManager.shared.screenConfig(for: id)
         config.isRotationEnabled = (sender.state == .on)
         SettingsManager.shared.setScreenConfig(config, for: id)
+        wallpaperManager.propagateSettingsToSyncGroup(fromScreenID: id)
         if sender.state == .on {
             wallpaperManager.startRotationTimer()
         } else {
@@ -772,6 +778,7 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         var config = SettingsManager.shared.screenConfig(for: id)
         config.rotationIntervalMinutes = minutes
         SettingsManager.shared.setScreenConfig(config, for: id)
+        wallpaperManager.propagateSettingsToSyncGroup(fromScreenID: id)
         intervalLabel.stringValue = formatInterval(minutes: minutes)
         wallpaperManager.startRotationTimer()
     }
@@ -1137,6 +1144,7 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
             if config.isRotationEnabled {
                 config.isRotationEnabled = false
                 SettingsManager.shared.setScreenConfig(config, for: id)
+                wallpaperManager.propagateSettingsToSyncGroup(fromScreenID: id)
                 wallpaperManager.startRotationTimer()
             }
             wallpaperManager.selectPlaylistItem(at: indexPath.item, for: screen)
