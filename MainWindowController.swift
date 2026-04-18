@@ -1107,12 +1107,12 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
         step2.messageText = "onboarding.step2.title".localized
         step2.informativeText = "onboarding.step2.message".localized
         step2.alertStyle = .informational
-        step2.addButton(withTitle: "onboarding.interval15".localized)
         step2.addButton(withTitle: "onboarding.interval5".localized)
+        step2.addButton(withTitle: "onboarding.interval15".localized)
         step2.addButton(withTitle: "onboarding.interval30".localized)
         let step2Result = step2.runModal()
         let minutes: Int
-        if step2Result == .alertSecondButtonReturn {
+        if step2Result == .alertFirstButtonReturn {
             minutes = 5
         } else if step2Result == .alertThirdButtonReturn {
             minutes = 30

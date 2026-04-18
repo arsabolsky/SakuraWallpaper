@@ -670,9 +670,12 @@ class WallpaperManager {
             if let sourceID = syncedScreenIDs.first {
                 let sourceConfig = SettingsManager.shared.screenConfig(for: sourceID)
                 config.folderPath = sourceConfig.folderPath
+                config.wallpaperPath = sourceConfig.wallpaperPath
                 config.rotationIntervalMinutes = sourceConfig.rotationIntervalMinutes
                 config.isShuffleMode = sourceConfig.isShuffleMode
                 config.isRotationEnabled = sourceConfig.isRotationEnabled
+                config.includeSubfolders = sourceConfig.includeSubfolders
+                config.isFolderMode = sourceConfig.isFolderMode
             }
             // Align playlist index to sync group
             if let folderPath = config.folderPath,
