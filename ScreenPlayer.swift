@@ -144,8 +144,11 @@ class ScreenPlayer {
 
     func resumePlayback() {
         guard let player = avPlayer else { return }
-        guard player.rate == 0 else { return }
-        player.play()
+        let currentTime = player.currentTime()
+        player.seek(to: currentTime) { [weak self] _ in
+            self?.avPlayer?.play()
+            self?.avPlayer?.rate = 1.0
+        }
     }
 
     func pausePlayback() {
