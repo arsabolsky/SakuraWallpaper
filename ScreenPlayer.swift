@@ -99,6 +99,7 @@ class ScreenPlayer {
     }
 
     private func setupVideoPlayer() {
+        let token = TransitionDiagnostics.shared.begin("screenPlayer.setupVideo", details: "screen=\(screen.localizedName) file=\(fileURL.lastPathComponent)")
         let item = AVPlayerItem(asset: AVURLAsset(url: fileURL))
         avPlayer = AVPlayer(playerItem: item)
         avPlayer?.isMuted = true
@@ -126,11 +127,16 @@ class ScreenPlayer {
 
         window?.orderBack(nil)
         avPlayer?.play()
+        TransitionDiagnostics.shared.end(token)
     }
 
     private func setupImageView() {
+        let token = TransitionDiagnostics.shared.begin("screenPlayer.setupImage", details: "screen=\(screen.localizedName) file=\(fileURL.lastPathComponent)")
         guard let image = NSImage(contentsOf: fileURL),
-              let contentView = window?.contentView else { return }
+              let contentView = window?.contentView else {
+            TransitionDiagnostics.shared.end(token, details: "result=failed")
+            return
+        }
 
         let imageLayer = CALayer()
         imageLayer.contents = image
@@ -140,18 +146,22 @@ class ScreenPlayer {
         contentView.layer = imageLayer
 
         window?.orderBack(nil)
+        TransitionDiagnostics.shared.end(token)
     }
 
     func resumePlayback() {
         guard let player = avPlayer else { return }
+        let token = TransitionDiagnostics.shared.begin("screenPlayer.resume", details: "screen=\(screen.localizedName) file=\(fileURL.lastPathComponent)")
         let currentTime = player.currentTime()
         player.seek(to: currentTime) { [weak self] _ in
             self?.avPlayer?.play()
             self?.avPlayer?.rate = 1.0
+            TransitionDiagnostics.shared.end(token)
         }
     }
 
     func pausePlayback() {
+        TransitionDiagnostics.shared.log("screenPlayer.pause", details: "screen=\(screen.localizedName) file=\(fileURL.lastPathComponent)")
         avPlayer?.pause()
     }
 
