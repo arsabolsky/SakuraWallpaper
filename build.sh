@@ -20,7 +20,6 @@ swiftc -o "$APP_DIR/Contents/MacOS/$APP_NAME" \
     AsyncWorkLimiter.swift \
     Localization.swift \
     PerformanceMonitor.swift \
-    TransitionDiagnostics.swift \
     ScreenPlayer.swift \
     WallpaperManager.swift \
     MainWindowController.swift \

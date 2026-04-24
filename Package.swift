@@ -42,8 +42,7 @@ let package = Package(
                 "SettingsManager.swift",
                 "MediaType.swift",
                 "PlaylistBuilder.swift",
-                "AsyncWorkLimiter.swift",
-                "TransitionDiagnostics.swift"
+                "AsyncWorkLimiter.swift"
             ],
             linkerSettings: [
                 .linkedFramework("Cocoa"),

@@ -51,7 +51,6 @@ class WallpaperManager {
     }
 
     init() {
-        TransitionDiagnostics.shared.log("wallpaperManager.init")
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(screensChangedDebounced),
@@ -66,13 +65,13 @@ class WallpaperManager {
         )
         NSWorkspace.shared.notificationCenter.addObserver(
             self,
-            selector: #selector(activeSpaceChanged(_:)),
+            selector: #selector(checkPlaybackState),
             name: NSWorkspace.activeSpaceDidChangeNotification,
             object: nil
         )
         NSWorkspace.shared.notificationCenter.addObserver(
             self,
-            selector: #selector(activeApplicationChanged(_:)),
+            selector: #selector(checkPlaybackState),
             name: NSWorkspace.didActivateApplicationNotification,
             object: nil
         )
@@ -90,13 +89,13 @@ class WallpaperManager {
         )
         NSWorkspace.shared.notificationCenter.addObserver(
             self,
-            selector: #selector(systemWakeChanged(_:)),
+            selector: #selector(checkPlaybackState),
             name: NSWorkspace.didWakeNotification,
             object: nil
         )
         NSWorkspace.shared.notificationCenter.addObserver(
             self,
-            selector: #selector(systemWakeChanged(_:)),
+            selector: #selector(checkPlaybackState),
             name: NSWorkspace.screensDidWakeNotification,
             object: nil
         )
@@ -127,65 +126,37 @@ class WallpaperManager {
 
 
     @objc private func handleSleep() {
-        let token = TransitionDiagnostics.shared.begin("wallpaper.sleep")
         if !isPausedInternally {
             isPausedInternally = true
-            pauseAll(reason: "sleep")
+            pauseAll()
             NotificationCenter.default.post(name: WallpaperManager.playbackStateDidChangeNotification, object: nil)
         }
-        TransitionDiagnostics.shared.end(token, details: "pausedInternally=\(isPausedInternally) players=\(players.count)")
     }
 
     @objc func checkPlaybackState() {
-        checkPlaybackState(reason: "direct")
-    }
-
-    @objc private func activeSpaceChanged(_ notification: Notification) {
-        TransitionDiagnostics.shared.log("workspace.activeSpaceDidChange", details: "players=\(players.count) paused=\(isPaused) internalPaused=\(isPausedInternally)")
-        checkPlaybackState(reason: "activeSpace")
-        showAll(reason: "activeSpace")
-    }
-
-    @objc private func activeApplicationChanged(_ notification: Notification) {
-        let appName = (notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.localizedName ?? "unknown"
-        TransitionDiagnostics.shared.log("workspace.didActivateApplication", details: "app=\(appName) players=\(players.count)")
-        checkPlaybackState(reason: "activeApplication")
-    }
-
-    @objc private func systemWakeChanged(_ notification: Notification) {
-        TransitionDiagnostics.shared.log("workspace.wake", details: "name=\(notification.name.rawValue)")
-        checkPlaybackState(reason: "wake")
-        showAll(reason: "wake")
-    }
-
-    private func checkPlaybackState(reason: String) {
-        let token = TransitionDiagnostics.shared.begin("playbackState.check", details: "reason=\(reason) paused=\(isPaused) internalPaused=\(isPausedInternally)")
         guard SettingsManager.shared.pauseWhenInvisible else {
             if isPausedInternally {
                 isPausedInternally = false
-                if !isPaused { resumeAll(reason: "\(reason).clearInternalPause") }
+                if !isPaused { resumeAll() }
                 NotificationCenter.default.post(name: WallpaperManager.playbackStateDidChangeNotification, object: nil)
             }
-            TransitionDiagnostics.shared.end(token, details: "mode=disabled internalPaused=\(isPausedInternally)")
             return
         }
 
         if shouldPauseForLowBattery() {
             if !isPausedInternally {
                 isPausedInternally = true
-                pauseAll(reason: "\(reason).lowBattery")
+                pauseAll()
                 NotificationCenter.default.post(name: WallpaperManager.playbackStateDidChangeNotification, object: nil)
             }
-            TransitionDiagnostics.shared.end(token, details: "mode=lowBattery internalPaused=\(isPausedInternally)")
             return
         }
 
         if isPausedInternally {
             isPausedInternally = false
-            if !isPaused { resumeAll(reason: "\(reason).resumeInternalPause") }
+            if !isPaused { resumeAll() }
             NotificationCenter.default.post(name: WallpaperManager.playbackStateDidChangeNotification, object: nil)
         }
-        TransitionDiagnostics.shared.end(token, details: "mode=normal internalPaused=\(isPausedInternally)")
     }
 
     public private(set) var isPausedInternally: Bool = false
@@ -580,9 +551,9 @@ class WallpaperManager {
         }
 
         if isPaused {
-            pauseAll(reason: "screensChanged.paused")
+            pauseAll()
         } else {
-            showAll(reason: "screensChanged")
+            showAll()
         }
 
         // Step 5: Resize existing players whose frame changed
@@ -633,27 +604,22 @@ class WallpaperManager {
     }
 
     @objc private func appBecameActive() {
-        let token = TransitionDiagnostics.shared.begin("app.becameActive", details: "players=\(players.count) paused=\(isPaused)")
         if !isPaused {
-            resumeAll(reason: "appBecameActive")
+            resumeAll()
         }
-        showAll(reason: "appBecameActive")
-        TransitionDiagnostics.shared.end(token)
+        showAll()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            guard let self else { return }
-            let delayedToken = TransitionDiagnostics.shared.begin("app.becameActive.delayed", details: "players=\(self.players.count) paused=\(self.isPaused)")
-            if self.isPaused == false {
-                self.resumeAll(reason: "appBecameActive.delayed")
+            if self?.isPaused == false {
+                self?.resumeAll()
             }
-            self.showAll(reason: "appBecameActive.delayed")
-            TransitionDiagnostics.shared.end(delayedToken)
+            self?.showAll()
         }
     }
 
     func pause() {
         guard isActive else { return }
         isPaused = true
-        pauseAll(reason: "manual")
+        pauseAll()
         stopKeepVisibleTimer()
         players.values.forEach { $0.window?.orderOut(nil) }
         NotificationCenter.default.post(name: WallpaperManager.playbackStateDidChangeNotification, object: nil)
@@ -663,8 +629,8 @@ class WallpaperManager {
         guard isActive else { return }
         isPaused = false
         if !isPausedInternally {
-            resumeAll(reason: "manual")
-            showAll(reason: "manual")
+            resumeAll()
+            showAll()
         }
         startKeepVisibleTimer()
         NotificationCenter.default.post(name: WallpaperManager.playbackStateDidChangeNotification, object: nil)
@@ -1057,17 +1023,10 @@ class WallpaperManager {
         }
     }
 
-    private func showAll(reason: String = "timer") {
-        let shouldLog = reason != "timer"
-        let token = shouldLog
-            ? TransitionDiagnostics.shared.begin("windows.showAll", details: "reason=\(reason) players=\(players.count)")
-            : nil
+    private func showAll() {
         players.forEach { id, player in
             guard !pausedScreens.contains(id) else { return }
             player.window?.orderBack(nil)
-        }
-        if let token {
-            TransitionDiagnostics.shared.end(token, details: "pausedScreens=\(pausedScreens.count)")
         }
     }
 
@@ -1122,19 +1081,15 @@ class WallpaperManager {
         return (level: percentage, isCharging: isCharging)
     }
 
-    private func resumeAll(reason: String) {
-        let token = TransitionDiagnostics.shared.begin("players.resumeAll", details: "reason=\(reason) players=\(players.count)")
+    private func resumeAll() {
         players.forEach { id, player in
             guard !pausedScreens.contains(id) else { return }
             player.resumePlayback()
         }
-        TransitionDiagnostics.shared.end(token, details: "pausedScreens=\(pausedScreens.count)")
     }
 
-    private func pauseAll(reason: String) {
-        let token = TransitionDiagnostics.shared.begin("players.pauseAll", details: "reason=\(reason) players=\(players.count)")
+    private func pauseAll() {
         players.values.forEach { $0.pausePlayback() }
-        TransitionDiagnostics.shared.end(token)
     }
 
     // MARK: - Restore all screens (Task 6.7)
