@@ -79,7 +79,7 @@ class ScreenPlayer {
         window.isOpaque = true
         window.hasShadow = false
         window.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopWindow)))
-        window.collectionBehavior = [.stationary, .canJoinAllSpaces, .ignoresCycle, .fullScreenAuxiliary]
+        window.collectionBehavior = [.stationary, .canJoinAllSpaces, .ignoresCycle]
         window.ignoresMouseEvents = true
         window.isReleasedWhenClosed = false
 
