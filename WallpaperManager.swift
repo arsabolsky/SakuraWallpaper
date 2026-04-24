@@ -1096,9 +1096,8 @@ class WallpaperManager {
 
     private func startKeepVisibleTimer() {
         keepVisibleTimer?.invalidate()
-        keepVisibleTimer = Timer.scheduledTimer(withTimeInterval: keepVisibleInterval, repeats: true) { [weak self] _ in
-            self?.showAll()
-        }
+        keepVisibleTimer = nil
+        TransitionDiagnostics.shared.log("keepVisibleTimer.disabled", details: "interval=\(keepVisibleInterval)")
     }
 
     private func stopKeepVisibleTimer() {
