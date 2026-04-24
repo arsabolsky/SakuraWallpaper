@@ -1026,7 +1026,6 @@ class WallpaperManager {
     private func showAll() {
         players.forEach { id, player in
             guard !pausedScreens.contains(id) else { return }
-            guard player.window?.isVisible == false else { return }
             player.window?.orderBack(nil)
         }
     }
