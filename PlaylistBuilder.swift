@@ -1,29 +1,51 @@
 import Foundation
 
 enum PlaylistBuilder {
+    private struct CacheKey: Hashable {
+        let path: String
+        let includeSubfolders: Bool
+    }
+
+    private static var cache: [CacheKey: [URL]] = [:]
+    private static let cacheLock = NSLock()
+
     static func collectMediaFiles(in folderURL: URL, includeSubfolders: Bool) throws -> [URL] {
+        let key = CacheKey(path: folderURL.standardizedFileURL.path, includeSubfolders: includeSubfolders)
+        if let cached = cachedFiles(for: key) {
+            return cached
+        }
+
         let manager = FileManager.default
+        let files: [URL]
         if includeSubfolders {
             let keys: [URLResourceKey] = [.isDirectoryKey, .isRegularFileKey, .isHiddenKey]
             guard let enumerator = manager.enumerator(at: folderURL, includingPropertiesForKeys: keys, options: [.skipsHiddenFiles]) else {
                 return []
             }
-            var files: [URL] = []
+            var collectedFiles: [URL] = []
             for case let fileURL as URL in enumerator {
                 let values = try fileURL.resourceValues(forKeys: Set(keys))
                 if values.isDirectory == true { continue }
                 if values.isHidden == true { continue }
                 if MediaType.detect(fileURL) != .unsupported {
-                    files.append(fileURL)
+                    collectedFiles.append(fileURL)
                 }
             }
-            return files.sorted { $0.path.localizedCaseInsensitiveCompare($1.path) == .orderedAscending }
+            files = collectedFiles.sorted { $0.path.localizedCaseInsensitiveCompare($1.path) == .orderedAscending }
+        } else {
+            files = try manager.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])
+                .filter { MediaType.detect($0) != .unsupported }
+                .sorted { $0.lastPathComponent.localizedCaseInsensitiveCompare($1.lastPathComponent) == .orderedAscending }
         }
 
-        let files = try manager.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])
+        store(files, for: key)
         return files
-            .filter { MediaType.detect($0) != .unsupported }
-            .sorted { $0.lastPathComponent.localizedCaseInsensitiveCompare($1.lastPathComponent) == .orderedAscending }
+    }
+
+    static func clearCache() {
+        cacheLock.lock()
+        cache.removeAll()
+        cacheLock.unlock()
     }
 
     static func nextIndex(currentIndex: Int, itemCount: Int, shuffle: Bool, randomIndex: (() -> Int)? = nil) -> Int {
@@ -37,5 +59,18 @@ enum PlaylistBuilder {
             return candidate
         }
         return (currentIndex + 1) % itemCount
+    }
+
+    private static func cachedFiles(for key: CacheKey) -> [URL]? {
+        cacheLock.lock()
+        let files = cache[key]
+        cacheLock.unlock()
+        return files
+    }
+
+    private static func store(_ files: [URL], for key: CacheKey) {
+        cacheLock.lock()
+        cache[key] = files
+        cacheLock.unlock()
     }
 }

@@ -17,7 +17,6 @@ let package = Package(
                 "Resources",
                 "img",
                 "build",
-                "docs",
                 "Tests",
                 "AppDelegate.swift",
                 "MainWindowController.swift",
@@ -34,13 +33,16 @@ let package = Package(
                 "README.md",
                 "README_CN.md",
                 "LICENSE",
-                "build.sh"
+                "build.sh",
+                "reset.sh",
+                "SakuraWallpaper.dmg"
             ],
             sources: [
                 "Screen_Config.swift",
                 "SettingsManager.swift",
                 "MediaType.swift",
-                "PlaylistBuilder.swift"
+                "PlaylistBuilder.swift",
+                "AsyncWorkLimiter.swift"
             ],
             linkerSettings: [
                 .linkedFramework("Cocoa"),

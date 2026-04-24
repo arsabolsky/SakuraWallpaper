@@ -7,6 +7,7 @@ final class ThumbnailProvider {
 
     private let cache = NSCache<NSString, NSImage>()
     private let imageQueue = DispatchQueue(label: "com.sakura.wallpaper.thumbnail.image", qos: .userInitiated, attributes: .concurrent)
+    private let videoLimiter = AsyncWorkLimiter(maxConcurrent: 2)
 
     private init() {
         cache.countLimit = 400
@@ -59,23 +60,30 @@ final class ThumbnailProvider {
 
     private func requestVideoThumbnail(for url: URL, size: NSSize, cacheKey: NSString, completion: @escaping (NSImage?) -> Void) {
         let token = PerformanceMonitor.shared.begin("thumbnail.video")
-        let asset = AVURLAsset(url: url)
-        let generator = AVAssetImageGenerator(asset: asset)
-        generator.appliesPreferredTrackTransform = true
-        generator.maximumSize = CGSize(width: size.width * 2, height: size.height * 2)
-
-        generator.generateCGImagesAsynchronously(forTimes: [NSValue(time: .zero)]) { [weak self] _, cgImage, _, result, _ in
-            guard let self else { return }
-            guard result == .succeeded, let cgImage else {
-                PerformanceMonitor.shared.end(token, extra: "result=failed path=\(url.lastPathComponent)")
-                DispatchQueue.main.async { completion(nil) }
+        videoLimiter.schedule { [weak self] finish in
+            guard let self else {
+                finish()
                 return
             }
 
-            let image = NSImage(cgImage: cgImage, size: size)
-            self.cache.setObject(image, forKey: cacheKey)
-            PerformanceMonitor.shared.end(token, extra: "result=ok path=\(url.lastPathComponent)")
-            DispatchQueue.main.async { completion(image) }
+            let asset = AVURLAsset(url: url)
+            let generator = AVAssetImageGenerator(asset: asset)
+            generator.appliesPreferredTrackTransform = true
+            generator.maximumSize = CGSize(width: size.width * 2, height: size.height * 2)
+
+            generator.generateCGImagesAsynchronously(forTimes: [NSValue(time: .zero)]) { _, cgImage, _, result, _ in
+                defer { finish() }
+                guard result == .succeeded, let cgImage else {
+                    PerformanceMonitor.shared.end(token, extra: "result=failed path=\(url.lastPathComponent)")
+                    DispatchQueue.main.async { completion(nil) }
+                    return
+                }
+
+                let image = NSImage(cgImage: cgImage, size: size)
+                self.cache.setObject(image, forKey: cacheKey)
+                PerformanceMonitor.shared.end(token, extra: "result=ok path=\(url.lastPathComponent)")
+                DispatchQueue.main.async { completion(image) }
+            }
         }
     }
 

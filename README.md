@@ -46,7 +46,7 @@ Current version: `v1.0.1`
 
 ### Download
 
-Download the latest `SakuraWallpaper.dmg` from [Releases](../../releases) and drag SakuraWallpaper to Applications folder.
+Download the latest `SakuraWallpaper.dmg` from [Releases](https://github.com/yueseqaz/SakuraWallpaper/releases) and drag SakuraWallpaper to Applications folder.
 OR
 ```
 brew install --cask yueseqaz/tap/sakura-wallpaper

@@ -271,6 +271,7 @@ class WallpaperManager {
     func setFolder(url: URL, for screen: NSScreen, config: Screen_Config) {
         let id = SettingsManager.screenIdentifier(screen)
         let token = PerformanceMonitor.shared.begin("playlist.build")
+        PlaylistBuilder.clearCache()
 
         do {
             let files = try PlaylistBuilder.collectMediaFiles(in: url, includeSubfolders: config.includeSubfolders)
@@ -976,17 +977,6 @@ class WallpaperManager {
 
     private func currentMediaURL(forScreenID id: String) -> URL? {
         players[id]?.mediaURL ?? currentFiles[id]
-    }
-
-    private func startRotationTimer(forScreenID id: String) {
-        stopIndependentTimer(forScreenID: id)
-        guard let list = playlistsByScreen[id], list.count > 1 else { return }
-        let config = SettingsManager.shared.screenConfig(for: id)
-        guard config.isRotationEnabled else { return }
-        let interval = TimeInterval(max(1, config.rotationIntervalMinutes) * 60)
-        independentTimersByScreen[id] = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
-            self?.nextWallpaper(forScreenID: id)
-        }
     }
 
     private func urlForScreen(_ screen: NSScreen) -> URL? {

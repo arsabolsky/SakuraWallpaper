@@ -17,6 +17,7 @@ swiftc -o "$APP_DIR/Contents/MacOS/$APP_NAME" \
     SettingsManager.swift \
     MediaType.swift \
     PlaylistBuilder.swift \
+    AsyncWorkLimiter.swift \
     Localization.swift \
     PerformanceMonitor.swift \
     ScreenPlayer.swift \

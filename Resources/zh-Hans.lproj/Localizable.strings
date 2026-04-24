@@ -18,6 +18,7 @@
 "ui.selectFile" = "选择文件";
 "ui.selectFolder" = "选择文件夹";
 "ui.stopWallpaper" = "清除后重选";
+"ui.stopWallpaperTooltip" = "停止当前屏幕壁纸并恢复原始 macOS 壁纸";
 "ui.noWallpaper" = "未选择壁纸";
 "ui.status" = "状态: %@";
 "ui.playing" = "正在运行";
