@@ -30,6 +30,7 @@ class WallpaperManager {
     private var transientDesktopSnapshotsByScreen: [String: URL] = [:]
     private var screensChangedWorkItem: DispatchWorkItem?
     private var activeSpaceShowWorkItem: DispatchWorkItem?
+    private var suppressTimerShowAllUntil: CFAbsoluteTime = 0
     /// Original system desktop URLs captured before SakuraWallpaper first overwrites them.
     /// Used to restore the wallpaper when the user clears SakuraWallpaper.
     private var originalDesktopURLsByScreen: [String: URL] = [:]
@@ -143,6 +144,7 @@ class WallpaperManager {
 
     @objc private func activeSpaceChanged(_ notification: Notification) {
         TransitionDiagnostics.shared.log("workspace.activeSpaceDidChange", details: "players=\(players.count) paused=\(isPaused) internalPaused=\(isPausedInternally)")
+        suppressTimerShowAllUntil = CFAbsoluteTimeGetCurrent() + 1.0
         checkPlaybackState(reason: "activeSpace")
         scheduleShowAllAfterSpaceTransition()
     }
@@ -165,7 +167,7 @@ class WallpaperManager {
             self?.showAll(reason: "activeSpace.deferred")
         }
         activeSpaceShowWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: workItem)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: workItem)
     }
 
     private func checkPlaybackState(reason: String) {
@@ -1068,6 +1070,9 @@ class WallpaperManager {
     }
 
     private func showAll(reason: String = "timer") {
+        if reason == "timer", CFAbsoluteTimeGetCurrent() < suppressTimerShowAllUntil {
+            return
+        }
         let shouldLog = reason != "timer"
         let token = shouldLog
             ? TransitionDiagnostics.shared.begin("windows.showAll", details: "reason=\(reason) players=\(players.count)")
