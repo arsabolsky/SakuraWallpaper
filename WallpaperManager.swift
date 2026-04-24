@@ -29,7 +29,6 @@ class WallpaperManager {
     private let lockScreenCaptureQueue = DispatchQueue(label: "com.sakura.wallpaper.lockscreen", qos: .userInitiated)
     private var transientDesktopSnapshotsByScreen: [String: URL] = [:]
     private var screensChangedWorkItem: DispatchWorkItem?
-    private var activeSpaceShowWorkItem: DispatchWorkItem?
     /// Original system desktop URLs captured before SakuraWallpaper first overwrites them.
     /// Used to restore the wallpaper when the user clears SakuraWallpaper.
     private var originalDesktopURLsByScreen: [String: URL] = [:]
@@ -144,7 +143,7 @@ class WallpaperManager {
     @objc private func activeSpaceChanged(_ notification: Notification) {
         TransitionDiagnostics.shared.log("workspace.activeSpaceDidChange", details: "players=\(players.count) paused=\(isPaused) internalPaused=\(isPausedInternally)")
         checkPlaybackState(reason: "activeSpace")
-        scheduleShowAllAfterSpaceTransition()
+        showAll(reason: "activeSpace")
     }
 
     @objc private func activeApplicationChanged(_ notification: Notification) {
@@ -157,15 +156,6 @@ class WallpaperManager {
         TransitionDiagnostics.shared.log("workspace.wake", details: "name=\(notification.name.rawValue)")
         checkPlaybackState(reason: "wake")
         showAll(reason: "wake")
-    }
-
-    private func scheduleShowAllAfterSpaceTransition() {
-        activeSpaceShowWorkItem?.cancel()
-        let workItem = DispatchWorkItem { [weak self] in
-            self?.showAll(reason: "activeSpace.deferred")
-        }
-        activeSpaceShowWorkItem = workItem
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: workItem)
     }
 
     private func checkPlaybackState(reason: String) {
