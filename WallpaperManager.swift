@@ -145,6 +145,10 @@ class WallpaperManager {
     @objc private func activeSpaceChanged(_ notification: Notification) {
         TransitionDiagnostics.shared.log("workspace.activeSpaceDidChange", details: "players=\(players.count) paused=\(isPaused) internalPaused=\(isPausedInternally)")
         suppressTimerShowAllUntil = CFAbsoluteTimeGetCurrent() + 1.0
+        guard SettingsManager.shared.pauseWhenInvisible else {
+            TransitionDiagnostics.shared.log("workspace.activeSpaceDidChange.skipped", details: "reason=pauseWhenInvisibleDisabled")
+            return
+        }
         checkPlaybackState(reason: "activeSpace")
         scheduleShowAllAfterSpaceTransition()
     }
@@ -152,6 +156,10 @@ class WallpaperManager {
     @objc private func activeApplicationChanged(_ notification: Notification) {
         let appName = (notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.localizedName ?? "unknown"
         TransitionDiagnostics.shared.log("workspace.didActivateApplication", details: "app=\(appName) players=\(players.count)")
+        guard SettingsManager.shared.pauseWhenInvisible else {
+            TransitionDiagnostics.shared.log("workspace.didActivateApplication.skipped", details: "reason=pauseWhenInvisibleDisabled")
+            return
+        }
         checkPlaybackState(reason: "activeApplication")
     }
 
