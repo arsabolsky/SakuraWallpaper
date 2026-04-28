@@ -31,3 +31,4 @@ DerivedData/
 
 # Agent data
 .kiro/
+.worktrees/
