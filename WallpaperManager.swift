@@ -131,27 +131,23 @@ class WallpaperManager {
     }
 
     @objc func checkPlaybackState() {
-        guard SettingsManager.shared.pauseWhenInvisible else {
+        let shouldPause = shouldAutoPausePlayback()
+
+        guard shouldPause else {
             if isPausedInternally {
                 isPausedInternally = false
-                if !isPaused { resumeAll() }
+                if !isPaused {
+                    resumeAll()
+                    showAll()
+                }
                 NotificationCenter.default.post(name: WallpaperManager.playbackStateDidChangeNotification, object: nil)
             }
             return
         }
 
-        if shouldPauseForLowBattery() {
-            if !isPausedInternally {
-                isPausedInternally = true
-                pauseAll()
-                NotificationCenter.default.post(name: WallpaperManager.playbackStateDidChangeNotification, object: nil)
-            }
-            return
-        }
-
-        if isPausedInternally {
-            isPausedInternally = false
-            if !isPaused { resumeAll() }
+        if !isPausedInternally {
+            isPausedInternally = true
+            pauseAll()
             NotificationCenter.default.post(name: WallpaperManager.playbackStateDidChangeNotification, object: nil)
         }
     }
@@ -385,7 +381,8 @@ class WallpaperManager {
 
                 DispatchQueue.main.async { [weak self] in
                     guard let self else { return }
-                    guard self.currentMediaURL(forScreenID: screenID) == mediaURL else {
+                    guard SettingsManager.shared.syncDesktopWallpaper,
+                          self.currentMediaURL(forScreenID: screenID) == mediaURL else {
                         try? self.fileManager.removeItem(at: snapshotURL)
                         return
                     }
@@ -704,6 +701,7 @@ class WallpaperManager {
             }
             self?.showAll()
         }
+        checkPlaybackState()
     }
 
     func pause() {
@@ -972,6 +970,31 @@ class WallpaperManager {
         syncCurrentWallpaperToSystemDesktop(for: screen)
     }
 
+    func setSyncDesktopWallpaperEnabled(_ enabled: Bool) {
+        let wasEnabled = SettingsManager.shared.syncDesktopWallpaper
+        SettingsManager.shared.syncDesktopWallpaper = enabled
+
+        for screen in NSScreen.screens {
+            let id = SettingsManager.screenIdentifier(screen)
+            let hasOriginalDesktopRecord = SettingsManager.shared.originalDesktopRecord(for: id) != nil
+            let action = WallpaperBehavior.desktopSyncAction(
+                wasEnabled: wasEnabled,
+                isEnabled: enabled,
+                hasOriginalDesktopRecord: hasOriginalDesktopRecord
+            )
+
+            switch action {
+            case .none:
+                break
+            case .syncCurrentWallpaper:
+                syncCurrentWallpaperToSystemDesktop(for: screen)
+            case .restoreOriginalDesktop:
+                clearTransientDesktopSnapshot(for: id)
+                _ = restoreOriginalDesktop(for: screen, screenID: id)
+            }
+        }
+    }
+
     func stopAll() {
         isPaused = false
         isPausedInternally = false
@@ -1131,7 +1154,9 @@ class WallpaperManager {
     private func startKeepVisibleTimer() {
         keepVisibleTimer?.invalidate()
         keepVisibleTimer = Timer.scheduledTimer(withTimeInterval: keepVisibleInterval, repeats: true) { [weak self] _ in
-            self?.showAll()
+            self?.checkPlaybackState()
+            guard let self, !self.isPaused, !self.isPausedInternally else { return }
+            self.showAll()
         }
     }
 
@@ -1155,6 +1180,17 @@ class WallpaperManager {
     private func shouldPauseForLowBattery() -> Bool {
         guard let battery = currentBatterySnapshot() else { return false }
         return !battery.isCharging && battery.level <= lowBatteryPauseThreshold
+    }
+
+    private func shouldAutoPausePlayback() -> Bool {
+        let battery = currentBatterySnapshot()
+        return WallpaperBehavior.shouldAutoPausePlayback(
+            pauseWhenInvisibleEnabled: SettingsManager.shared.pauseWhenInvisible,
+            batteryLevel: battery?.level,
+            isCharging: battery?.isCharging ?? false,
+            isDesktopCovered: isDesktopCovered(),
+            lowBatteryThreshold: lowBatteryPauseThreshold
+        )
     }
 
     private func currentBatterySnapshot() -> (level: Int, isCharging: Bool)? {
@@ -1251,5 +1287,44 @@ class WallpaperManager {
 
     private func isTransientSnapshotURL(_ url: URL) -> Bool {
         url.path.contains("/SakuraWallpaper/lockscreen-current-")
+    }
+
+    private func isDesktopCovered() -> Bool {
+        guard !players.isEmpty,
+              let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]
+        else {
+            return false
+        }
+
+        let screenFrames = NSScreen.screens.map(\.frame)
+        let currentPID = ProcessInfo.processInfo.processIdentifier
+
+        for window in windowList {
+            guard let layer = window[kCGWindowLayer as String] as? Int, layer == 0 else { continue }
+
+            let alpha = window[kCGWindowAlpha as String] as? Double ?? 1
+            guard alpha > 0.01 else { continue }
+
+            if let ownerPID = window[kCGWindowOwnerPID as String] as? pid_t, ownerPID == currentPID {
+                continue
+            }
+
+            let ownerName = window[kCGWindowOwnerName as String] as? String ?? ""
+            if ownerName == "Dock" || ownerName == "Window Server" {
+                continue
+            }
+
+            guard let boundsDictionary = window[kCGWindowBounds as String] as? [String: Any],
+                  let bounds = CGRect(dictionaryRepresentation: boundsDictionary as CFDictionary),
+                  bounds.width > 32,
+                  bounds.height > 32,
+                  screenFrames.contains(where: { $0.intersects(bounds) }) else {
+                continue
+            }
+
+            return true
+        }
+
+        return false
     }
 }

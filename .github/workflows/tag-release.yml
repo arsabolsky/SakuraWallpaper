@@ -1,0 +1,55 @@
+name: Tag Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish-release:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Homebrew dependencies
+        run: |
+          brew update
+          brew install create-dmg
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: python3 -m pip install --upgrade pillow
+
+      - name: Derive app version
+        id: version
+        shell: bash
+        run: echo "app_version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build DMG
+        env:
+          APP_VERSION: ${{ steps.version.outputs.app_version }}
+        run: ./build.sh dmg
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SakuraWallpaper-${{ github.ref_name }}-dmg
+          path: SakuraWallpaper.dmg
+          if-no-files-found: error
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          files: SakuraWallpaper.dmg
+          generate_release_notes: true

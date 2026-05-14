@@ -1228,7 +1228,7 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
     }
 
     @objc func syncDesktopSwitchChanged(_ sender: NSButton) {
-        SettingsManager.shared.syncDesktopWallpaper = (sender.state == .on)
+        wallpaperManager.setSyncDesktopWallpaperEnabled(sender.state == .on)
     }
 
     @objc func fitModeChanged(_ sender: NSPopUpButton) {

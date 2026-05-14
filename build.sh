@@ -3,7 +3,8 @@
 APP_NAME="SakuraWallpaper"
 BUILD_DIR="build"
 APP_DIR="$BUILD_DIR/$APP_NAME.app"
-APP_VERSION="1.0.1"
+DEFAULT_APP_VERSION="1.0.1"
+APP_VERSION="${APP_VERSION:-$DEFAULT_APP_VERSION}"
 
 # 清理
 rm -rf "$BUILD_DIR"
@@ -15,6 +16,7 @@ echo "Compiling..."
 swiftc -o "$APP_DIR/Contents/MacOS/$APP_NAME" \
     Screen_Config.swift \
     SettingsManager.swift \
+    WallpaperBehavior.swift \
     MediaType.swift \
     PlaylistBuilder.swift \
     AsyncWorkLimiter.swift \

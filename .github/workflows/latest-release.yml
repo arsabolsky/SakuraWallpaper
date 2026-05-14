@@ -1,0 +1,67 @@
+name: Latest Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish-latest:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Homebrew dependencies
+        run: |
+          brew update
+          brew install create-dmg
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: python3 -m pip install --upgrade pillow
+
+      - name: Build DMG
+        env:
+          APP_VERSION: "main.${{ github.run_number }}"
+        run: ./build.sh dmg
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SakuraWallpaper-latest-dmg
+          path: SakuraWallpaper.dmg
+          if-no-files-found: error
+
+      - name: Move latest tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f latest
+          git push origin refs/tags/latest --force
+
+      - name: Publish latest release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: latest
+          name: Latest Build
+          prerelease: true
+          allowUpdates: true
+          replacesArtifacts: true
+          removeArtifacts: true
+          artifacts: SakuraWallpaper.dmg
+          body: |
+            Latest automatic build from `main`.
+
+            Commit: `${{ github.sha }}`
+            Run: `${{ github.run_number }}`

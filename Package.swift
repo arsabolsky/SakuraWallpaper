@@ -41,6 +41,7 @@ let package = Package(
             sources: [
                 "Screen_Config.swift",
                 "SettingsManager.swift",
+                "WallpaperBehavior.swift",
                 "MediaType.swift",
                 "PlaylistBuilder.swift",
                 "AsyncWorkLimiter.swift"
