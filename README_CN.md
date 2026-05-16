@@ -6,6 +6,14 @@ macOS 轻量级视频和图片壁纸应用。
 
 [English Documentation](README.md)
 
+## 项目状态
+
+SakuraWallpaper 目前已经完整可用。
+
+后续更新将以必要修正、兼容性维护与现有体验打磨为主，不再为了堆砌功能而继续增加新内容。这个项目会继续坚持轻量、克制、好用的准则。
+
+Sakura 至上。
+
 ## 功能特性
 
 - 将视频 (MP4, MOV, GIF) 或图片 (PNG, JPG, HEIC, WebP) 设置为桌面壁纸
@@ -140,7 +148,7 @@ SakuraWallpaper/
 
 ## 参与贡献
 
-欢迎贡献代码。请提交 Issue 或 Pull Request。
+欢迎提交真正有价值的修正、兼容性维护与体验改进。适合这个项目的变化，应当让 SakuraWallpaper 更稳定、更轻量、更顺手。
 
 ## 许可证
 
@@ -148,4 +156,6 @@ MIT License - 详见 [LICENSE](LICENSE)
 
 ## 致谢
 
-由 sakura 制作
+由 sakura 用心制作。
+
+愿无限进步。

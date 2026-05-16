@@ -6,6 +6,14 @@ Current version: `v1.0.1`
 
 [Chinese Documentation](README_CN.md)
 
+## Project Status
+
+SakuraWallpaper is complete and fully usable in its current form.
+
+Future updates will focus on necessary fixes, compatibility upkeep, and polishing what already exists. New features will no longer be added for the sake of accumulation. The project will continue to follow a lightweight standard: keep it focused, keep it clean, keep it useful.
+
+Sakura first.
+
 ## Features
 
 - Set videos (MP4, MOV, GIF) or images (PNG, JPG, HEIC, WebP) as desktop wallpaper
@@ -140,7 +148,7 @@ SakuraWallpaper/
 
 ## Contributing
 
-Contributions are welcome. Please open an issue or submit a pull request.
+Thoughtful fixes, compatibility updates, and quality improvements are welcome. Changes that keep SakuraWallpaper stable, lightweight, and pleasant to use are the best fit for the project.
 
 ## License
 
@@ -148,4 +156,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-Made with ❤️ by sakura
+Made with care by sakura.
+
+May there be endless progress.
