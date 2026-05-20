@@ -2,7 +2,7 @@ import Cocoa
 import AVFoundation
 import IOKit.ps
 
-class WallpaperManager {
+public class WallpaperManager {
     enum PlaybackStatus {
         case stopped
         case playing
@@ -11,9 +11,9 @@ class WallpaperManager {
     }
 
     private var players: [String: ScreenPlayer] = [:]
-    var currentFiles: [String: URL] = [:]
-    var isActive: Bool { !players.isEmpty }
-    var isPaused: Bool = false
+    public var currentFiles: [String: URL] = [:]
+    public var isActive: Bool { !players.isEmpty }
+    public var isPaused: Bool = false
     private var keepVisibleTimer: Timer?
     private var batteryCheckTimer: Timer?
     private let keepVisibleInterval: TimeInterval = 0.75
@@ -48,7 +48,7 @@ class WallpaperManager {
         return .playing
     }
 
-    init() {
+    public init() {
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(screensChangedDebounced),
@@ -131,7 +131,7 @@ class WallpaperManager {
         }
     }
 
-    @objc func checkPlaybackState() {
+    @objc public func checkPlaybackState() {
         let shouldPause = shouldAutoPausePlayback()
 
         guard shouldPause else {
@@ -168,7 +168,7 @@ class WallpaperManager {
         }
     }
 
-    @objc func nextWallpaper() {
+    @objc public func nextWallpaper() {
         // Advance sync group as a unit
         let syncedIDs = Set(NSScreen.screens
             .map { SettingsManager.screenIdentifier($0) }
@@ -182,7 +182,7 @@ class WallpaperManager {
         }
     }
 
-    func nextWallpaper(for screen: NSScreen) {
+    public func nextWallpaper(for screen: NSScreen) {
         let id = SettingsManager.screenIdentifier(screen)
         let config = SettingsManager.shared.screenConfig(for: id)
         if config.isSynced {
@@ -262,7 +262,7 @@ class WallpaperManager {
         }
     }
 
-    func setFolder(url: URL, for screen: NSScreen, config: Screen_Config) {
+    public func setFolder(url: URL, for screen: NSScreen, config: Screen_Config) {
         let id = SettingsManager.screenIdentifier(screen)
         let token = PerformanceMonitor.shared.begin("playlist.build")
         PlaylistBuilder.clearCache()
@@ -878,7 +878,7 @@ class WallpaperManager {
         independentTimersByScreen.removeValue(forKey: id)
     }
 
-    func setWallpaper(url: URL) {
+    public func setWallpaper(url: URL) {
         let screens = NSScreen.screens
         stopAll()
         for screen in screens {
@@ -896,7 +896,7 @@ class WallpaperManager {
         }
     }
 
-    func setWallpaper(url: URL, for screen: NSScreen) {
+    public func setWallpaper(url: URL, for screen: NSScreen) {
         let id = SettingsManager.screenIdentifier(screen)
         stopIndependentTimer(forScreenID: id)
         playlistsByScreen.removeValue(forKey: id)
@@ -996,7 +996,7 @@ class WallpaperManager {
         }
     }
 
-    func stopAll() {
+    public func stopAll() {
         isPaused = false
         isPausedInternally = false
         stopKeepVisibleTimer()
@@ -1016,7 +1016,7 @@ class WallpaperManager {
         }
     }
 
-    func stopWallpaper(for screen: NSScreen) {
+    public func stopWallpaper(for screen: NSScreen) {
         let id = SettingsManager.screenIdentifier(screen)
         players[id]?.cleanup()
         players.removeValue(forKey: id)
@@ -1229,7 +1229,7 @@ class WallpaperManager {
 
     // MARK: - Restore all screens (Task 6.7)
 
-    func restoreAllScreens() {
+    public func restoreAllScreens() {
         for screen in NSScreen.screens {
             let id = SettingsManager.screenIdentifier(screen)
             var config = SettingsManager.shared.screenConfig(for: id)

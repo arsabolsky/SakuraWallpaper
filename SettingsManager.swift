@@ -2,19 +2,19 @@ import Foundation
 import ServiceManagement
 import Cocoa
 
-enum AppearanceMode: String, Codable, CaseIterable {
+public enum AppearanceMode: String, Codable, CaseIterable {
     case system
     case light
     case dark
 }
 
-struct OriginalDesktopRecord: Codable, Equatable {
-    var imagePath: String
-    var imageScalingRawValue: Int?
-    var allowClipping: Bool?
-    var fillColorData: Data?
+public struct OriginalDesktopRecord: Codable, Equatable {
+    public var imagePath: String
+    public var imageScalingRawValue: Int?
+    public var allowClipping: Bool?
+    public var fillColorData: Data?
 
-    init(imagePath: String, imageScalingRawValue: Int?, allowClipping: Bool?, fillColorData: Data?) {
+    public init(imagePath: String, imageScalingRawValue: Int?, allowClipping: Bool?, fillColorData: Data?) {
         self.imagePath = imagePath
         self.imageScalingRawValue = imageScalingRawValue
         self.allowClipping = allowClipping
@@ -62,8 +62,8 @@ struct OriginalDesktopRecord: Codable, Equatable {
     }
 }
 
-class SettingsManager {
-    static let shared = SettingsManager()
+public class SettingsManager {
+    public static let shared = SettingsManager()
 
     private let defaults: UserDefaults
 
@@ -81,13 +81,13 @@ class SettingsManager {
     private let appearanceModeKey        = "sakurawallpaper_appearance_mode"
     private let originalDesktopRecordsKey = "sakurawallpaper_original_desktop_records"
 
-    init(defaults: UserDefaults = .standard) {
+    public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
     }
 
     // MARK: - Screen Registry API
 
-    func screenConfig(for screenID: String) -> Screen_Config {
+    public func screenConfig(for screenID: String) -> Screen_Config {
         guard let data = defaults.data(forKey: screenRegistryKey) else {
             return Screen_Config.default
         }
@@ -100,7 +100,7 @@ class SettingsManager {
         }
     }
 
-    func setScreenConfig(_ config: Screen_Config, for screenID: String) {
+    public func setScreenConfig(_ config: Screen_Config, for screenID: String) {
         var registry: Screen_Registry
         if let data = defaults.data(forKey: screenRegistryKey),
            let decoded = try? JSONDecoder().decode(Screen_Registry.self, from: data) {
@@ -235,7 +235,7 @@ class SettingsManager {
 
     // MARK: - Screen Identifier
 
-    static func screenIdentifier(_ screen: NSScreen) -> String {
+    public static func screenIdentifier(_ screen: NSScreen) -> String {
         return screenIdentifier(deviceDescription: screen.deviceDescription, name: screen.localizedName)
     }
 

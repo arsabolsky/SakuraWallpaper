@@ -1,6 +1,6 @@
 import Foundation
 
-enum PlaylistBuilder {
+public enum PlaylistBuilder {
     private struct CacheKey: Hashable {
         let path: String
         let includeSubfolders: Bool
@@ -9,7 +9,7 @@ enum PlaylistBuilder {
     private static var cache: [CacheKey: [URL]] = [:]
     private static let cacheLock = NSLock()
 
-    static func collectMediaFiles(in folderURL: URL, includeSubfolders: Bool) throws -> [URL] {
+    public static func collectMediaFiles(in folderURL: URL, includeSubfolders: Bool) throws -> [URL] {
         let key = CacheKey(path: folderURL.standardizedFileURL.path, includeSubfolders: includeSubfolders)
         if let cached = cachedFiles(for: key) {
             return cached

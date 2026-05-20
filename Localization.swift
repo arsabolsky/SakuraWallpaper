@@ -19,14 +19,14 @@ extension String {
     }
 }
 
-enum WallpaperError: LocalizedError {
+public enum WallpaperError: LocalizedError {
     case fileNotFound
     case unsupportedFormat
     case playbackFailed
     case permissionDenied
     case screenNotFound
     
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .fileNotFound: return "error.fileNotFound".localized
         case .unsupportedFormat: return "error.unsupportedFormat".localized
@@ -36,7 +36,7 @@ enum WallpaperError: LocalizedError {
         }
     }
     
-    var recoverySuggestion: String? {
+    public var recoverySuggestion: String? {
         switch self {
         case .fileNotFound: return "error.fileNotFound.message".localized
         case .unsupportedFormat: return "error.unsupportedFormat.message".localized

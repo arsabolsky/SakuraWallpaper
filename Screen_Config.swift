@@ -1,6 +1,6 @@
 import Foundation
 
-enum WallpaperFitMode: String, Codable, CaseIterable {
+public enum WallpaperFitMode: String, Codable, CaseIterable {
     case fill
     case fit
     case stretch
@@ -8,20 +8,20 @@ enum WallpaperFitMode: String, Codable, CaseIterable {
 
 // MARK: - Screen_Config
 
-struct Screen_Config: Codable, Equatable {
-    var folderPath: String?
-    var wallpaperPath: String?
-    var rotationIntervalMinutes: Int
-    var isShuffleMode: Bool
-    var isRotationEnabled: Bool
-    var includeSubfolders: Bool
-    var isFolderMode: Bool
-    var isSynced: Bool
-    var wallpaperFit: WallpaperFitMode
-    var isFolderBrowserVisible: Bool
-    var securityScopedBookmark: Data?
+public struct Screen_Config: Codable, Equatable {
+    public var folderPath: String?
+    public var wallpaperPath: String?
+    public var rotationIntervalMinutes: Int
+    public var isShuffleMode: Bool
+    public var isRotationEnabled: Bool
+    public var includeSubfolders: Bool
+    public var isFolderMode: Bool
+    public var isSynced: Bool
+    public var wallpaperFit: WallpaperFitMode
+    public var isFolderBrowserVisible: Bool
+    public var securityScopedBookmark: Data?
 
-    static let `default` = Screen_Config(
+    public static let `default` = Screen_Config(
         folderPath: nil,
         wallpaperPath: nil,
         rotationIntervalMinutes: 15,
@@ -34,7 +34,7 @@ struct Screen_Config: Codable, Equatable {
         isFolderBrowserVisible: false
     )
 
-    enum CodingKeys: String, CodingKey {
+    public enum CodingKeys: String, CodingKey {
         case folderPath              = "folder_path"
         case wallpaperPath           = "wallpaper_path"
         case rotationIntervalMinutes = "rotation_interval_minutes"
@@ -48,7 +48,7 @@ struct Screen_Config: Codable, Equatable {
         case securityScopedBookmark  = "security_scoped_bookmark"
     }
 
-    init(
+    public init(
         folderPath: String?,
         wallpaperPath: String?,
         rotationIntervalMinutes: Int,
@@ -74,7 +74,7 @@ struct Screen_Config: Codable, Equatable {
         self.securityScopedBookmark = securityScopedBookmark
     }
 
-    init(from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let d = Screen_Config.default
         folderPath              = try container.decodeIfPresent(String.self, forKey: .folderPath)              ?? d.folderPath
@@ -98,11 +98,11 @@ struct Screen_Config: Codable, Equatable {
 
 // MARK: - Screen_Registry
 
-typealias Screen_Registry = [String: Screen_Config]
+public typealias Screen_Registry = [String: Screen_Config]
 
 // MARK: - New_Screen_Policy
 
-enum New_Screen_Policy: String, Codable {
+public enum New_Screen_Policy: String, Codable {
     case inheritSyncGroup
     case blank
 }
