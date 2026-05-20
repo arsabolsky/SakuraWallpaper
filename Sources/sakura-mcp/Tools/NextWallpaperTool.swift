@@ -2,7 +2,7 @@ import Cocoa
 import SakuraWallpaperCore
 
 enum NextWallpaperTool {
-    static func register(in registry: ToolRegistry, wallpaperManager: WallpaperManager) {
+    static func register(in registry: ToolRegistry, wallpaperManager: WallpaperManager?) {
         registry.register(MCPToolDefinition(
             name: "next_wallpaper",
             description: "Skip to the next wallpaper in the rotation for one or all screens.",
@@ -17,6 +17,9 @@ enum NextWallpaperTool {
                 "required": .array([])
             ]
         )) { args in
+            guard let wm = wallpaperManager else {
+                throw MCPToolError(message: "Wallpaper engine unavailable — run from GUI session")
+            }
             let targetID = args["screen_id"]?.stringValue
             let screens = NSScreen.screens
 
@@ -25,14 +28,14 @@ enum NextWallpaperTool {
                 guard let screen = screens.first(where: { SettingsManager.screenIdentifier($0) == t }) else {
                     throw MCPToolError(message: "Screen not found: \(t)")
                 }
-                wallpaperManager.nextWallpaper(for: screen)
-                let newFile = wallpaperManager.currentFiles[t]?.path ?? ""
+                wm.nextWallpaper(for: screen)
+                let newFile = wm.currentFiles[t]?.path ?? ""
                 results.append(["id": .string(t), "new_file": .string(newFile)])
             } else {
-                wallpaperManager.nextWallpaper()
+                wm.nextWallpaper()
                 for screen in screens {
                     let id = SettingsManager.screenIdentifier(screen)
-                    let newFile = wallpaperManager.currentFiles[id]?.path ?? ""
+                    let newFile = wm.currentFiles[id]?.path ?? ""
                     results.append(["id": .string(id), "new_file": .string(newFile)])
                 }
             }

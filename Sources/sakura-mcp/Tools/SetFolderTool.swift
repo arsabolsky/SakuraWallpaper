@@ -2,7 +2,7 @@ import Cocoa
 import SakuraWallpaperCore
 
 enum SetFolderTool {
-    static func register(in registry: ToolRegistry, wallpaperManager: WallpaperManager) {
+    static func register(in registry: ToolRegistry, wallpaperManager: WallpaperManager?) {
         registry.register(MCPToolDefinition(
             name: "set_folder",
             description: "Set a folder for wallpaper rotation on one or all screens.",
@@ -37,6 +37,9 @@ enum SetFolderTool {
                 "required": .array([.string("folder_path")])
             ]
         )) { args in
+            guard let wm = wallpaperManager else {
+                throw MCPToolError(message: "Wallpaper engine unavailable — run from GUI session")
+            }
             guard let folderPath = args["folder_path"]?.stringValue, !folderPath.isEmpty else {
                 throw MCPToolError(message: "folder_path is required")
             }
@@ -72,10 +75,10 @@ enum SetFolderTool {
                 guard let screen = screens.first(where: { SettingsManager.screenIdentifier($0) == t }) else {
                     throw MCPToolError(message: "Screen not found: \(t)")
                 }
-                wallpaperManager.setFolder(url: folderURL, for: screen, config: config)
+                wm.setFolder(url: folderURL, for: screen, config: config)
             } else {
                 for screen in screens {
-                    wallpaperManager.setFolder(url: folderURL, for: screen, config: config)
+                    wm.setFolder(url: folderURL, for: screen, config: config)
                 }
             }
 

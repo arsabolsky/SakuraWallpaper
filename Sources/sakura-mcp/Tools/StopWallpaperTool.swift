@@ -2,7 +2,7 @@ import Cocoa
 import SakuraWallpaperCore
 
 enum StopWallpaperTool {
-    static func register(in registry: ToolRegistry, wallpaperManager: WallpaperManager) {
+    static func register(in registry: ToolRegistry, wallpaperManager: WallpaperManager?) {
         registry.register(MCPToolDefinition(
             name: "stop_wallpaper",
             description: "Stop wallpaper playback on one or all screens.",
@@ -17,6 +17,9 @@ enum StopWallpaperTool {
                 "required": .array([])
             ]
         )) { args in
+            guard let wm = wallpaperManager else {
+                throw MCPToolError(message: "Wallpaper engine unavailable — run from GUI session")
+            }
             let targetID = args["screen_id"]?.stringValue
             let screens = NSScreen.screens
 
@@ -25,10 +28,10 @@ enum StopWallpaperTool {
                 guard let screen = screens.first(where: { SettingsManager.screenIdentifier($0) == t }) else {
                     throw MCPToolError(message: "Screen not found: \(t)")
                 }
-                wallpaperManager.stopWallpaper(for: screen)
+                wm.stopWallpaper(for: screen)
                 stopped = [t]
             } else {
-                wallpaperManager.stopAll()
+                wm.stopAll()
                 stopped = screens.map { SettingsManager.screenIdentifier($0) }
             }
 

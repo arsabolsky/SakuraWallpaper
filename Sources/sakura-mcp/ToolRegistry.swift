@@ -32,7 +32,7 @@ final class ToolRegistry {
         return try handler(arguments)
     }
 
-    func registerAll(wallpaperManager: WallpaperManager) {
+    func registerAll(wallpaperManager: WallpaperManager?) {
         ListScreensTool.register(in: self)
         GetStatusTool.register(in: self, wallpaperManager: wallpaperManager)
         SetWallpaperTool.register(in: self, wallpaperManager: wallpaperManager)

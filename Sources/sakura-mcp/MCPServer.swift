@@ -2,7 +2,7 @@ import Foundation
 import SakuraWallpaperCore
 
 final class MCPServer {
-    private let wallpaperManager: WallpaperManager
+    private let wallpaperManager: WallpaperManager?
     private let registry = ToolRegistry()
     private let decoder = JSONDecoder()
     private let encoder: JSONEncoder = {
@@ -11,7 +11,7 @@ final class MCPServer {
         return e
     }()
 
-    init(wallpaperManager: WallpaperManager) {
+    init(wallpaperManager: WallpaperManager?) {
         self.wallpaperManager = wallpaperManager
         registry.registerAll(wallpaperManager: wallpaperManager)
     }

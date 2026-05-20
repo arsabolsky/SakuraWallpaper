@@ -2,7 +2,7 @@ import Cocoa
 import SakuraWallpaperCore
 
 enum UpdateSettingsTool {
-    static func register(in registry: ToolRegistry, wallpaperManager: WallpaperManager) {
+    static func register(in registry: ToolRegistry, wallpaperManager: WallpaperManager?) {
         registry.register(MCPToolDefinition(
             name: "update_settings",
             description: "Update wallpaper configuration parameters without changing the current wallpaper.",
@@ -41,6 +41,9 @@ enum UpdateSettingsTool {
                 "required": .array([])
             ]
         )) { args in
+            guard let wm = wallpaperManager else {
+                throw MCPToolError(message: "Wallpaper engine unavailable — run from GUI session")
+            }
             let targetID = args["screen_id"]?.stringValue
             let screens = NSScreen.screens
             var updatedFields: [String] = []
@@ -65,7 +68,7 @@ enum UpdateSettingsTool {
                     updatedFields.append("include_subfolders")
                     if let fp = config.folderPath,
                        let screen = screens.first(where: { SettingsManager.screenIdentifier($0) == id }) {
-                        wallpaperManager.setFolder(url: URL(fileURLWithPath: fp), for: screen, config: config)
+                        wm.setFolder(url: URL(fileURLWithPath: fp), for: screen, config: config)
                         return
                     }
                 }

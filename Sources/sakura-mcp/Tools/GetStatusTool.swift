@@ -2,7 +2,7 @@ import Cocoa
 import SakuraWallpaperCore
 
 enum GetStatusTool {
-    static func register(in registry: ToolRegistry, wallpaperManager: WallpaperManager) {
+    static func register(in registry: ToolRegistry, wallpaperManager: WallpaperManager?) {
         registry.register(MCPToolDefinition(
             name: "get_status",
             description: "Get current wallpaper playback status for all screens or a specific one.",
@@ -17,6 +17,9 @@ enum GetStatusTool {
                 "required": .array([])
             ]
         )) { args in
+            guard let wm = wallpaperManager else {
+                throw MCPToolError(message: "Wallpaper engine unavailable — run from GUI session")
+            }
             let targetID = args["screen_id"]?.stringValue
             let screens = NSScreen.screens
 
@@ -26,14 +29,14 @@ enum GetStatusTool {
                 if let t = targetID, t != id { continue }
 
                 let config = SettingsManager.shared.screenConfig(for: id)
-                let isPlaying = wallpaperManager.currentFiles[id] != nil
-                let currentPath = wallpaperManager.currentFiles[id]?.path
+                let isPlaying = wm.currentFiles[id] != nil
+                let currentPath = wm.currentFiles[id]?.path
 
                 var entry: [String: JSONRPCValue] = [
                     "id": .string(id),
                     "name": .string(screen.localizedName),
                     "is_playing": .bool(isPlaying),
-                    "is_paused": .bool(wallpaperManager.isPaused),
+                    "is_paused": .bool(wm.isPaused),
                     "is_folder_mode": .bool(config.isFolderMode),
                     "rotation_interval_minutes": .number(Double(config.rotationIntervalMinutes)),
                     "shuffle": .bool(config.isShuffleMode),

@@ -2,7 +2,7 @@ import Cocoa
 import SakuraWallpaperCore
 
 enum SetWallpaperTool {
-    static func register(in registry: ToolRegistry, wallpaperManager: WallpaperManager) {
+    static func register(in registry: ToolRegistry, wallpaperManager: WallpaperManager?) {
         registry.register(MCPToolDefinition(
             name: "set_wallpaper",
             description: "Set a single image or video file as wallpaper on one or all screens.",
@@ -21,6 +21,9 @@ enum SetWallpaperTool {
                 "required": .array([.string("file_path")])
             ]
         )) { args in
+            guard let wm = wallpaperManager else {
+                throw MCPToolError(message: "Wallpaper engine unavailable — run from GUI session")
+            }
             guard let filePath = args["file_path"]?.stringValue, !filePath.isEmpty else {
                 throw MCPToolError(message: "file_path is required and must be non-empty")
             }
@@ -46,10 +49,10 @@ enum SetWallpaperTool {
                 guard let screen = screens.first(where: { SettingsManager.screenIdentifier($0) == t }) else {
                     throw MCPToolError(message: "Screen not found: \(t)")
                 }
-                wallpaperManager.setWallpaper(url: url, for: screen)
+                wm.setWallpaper(url: url, for: screen)
             } else {
                 for screen in screens {
-                    wallpaperManager.setWallpaper(url: url, for: screen)
+                    wm.setWallpaper(url: url, for: screen)
                 }
             }
 
