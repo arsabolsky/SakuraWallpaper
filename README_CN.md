@@ -73,13 +73,7 @@ open build/SakuraWallpaper.app
 
 ## MCP — AI 智能体控制
 
-SakuraWallpaper 内置 **MCP (Model Context Protocol) 服务器**，让 AI 智能体（Claude Desktop、Cursor、Codex）直接操控你的壁纸。
-
-### 编译 MCP 命令行工具
-
-```
-swift build --product sakura-mcp
-```
+SakuraWallpaper 内置 **MCP (Model Context Protocol) 服务器**，让 AI 智能体（Claude Desktop、Cursor、Codex）直接操控你的壁纸。二进制文件已打包在 app 中，无需额外下载或编译。
 
 ### 接入 Claude Desktop
 
@@ -89,8 +83,7 @@ swift build --product sakura-mcp
 {
   "mcpServers": {
     "sakura-wallpaper": {
-      "command": "swift",
-      "args": ["run", "--package-path", "/path/to/SakuraWallpaper", "sakura-mcp"]
+      "command": "/Applications/SakuraWallpaper.app/Contents/Resources/sakura-mcp"
     }
   }
 }
@@ -102,19 +95,22 @@ swift build --product sakura-mcp
 - "把我的外接显示器切到下一张壁纸"
 - "让笔记本屏幕每 10 分钟从 ~/图片/自然 文件夹随机切换壁纸"
 
+> **提示:** 如果 SakuraWallpaper 安装在其他位置，请相应调整路径。
+
 ### AI 自安装提示词
 
-如果你的 AI 智能体没有预设连接，将以下提示词粘贴给它，让它自行编译并启动 MCP 服务：
+如果你的 AI 智能体没有预设连接，将以下提示词粘贴给它，它会自行找到并启动 MCP 服务：
 
 ```
-请帮我设置 SakuraWallpaper 的 MCP 服务器，按以下步骤操作：
+请帮我设置 SakuraWallpaper 的 MCP 服务器：
 
-1. 执行: cd /path/to/SakuraWallpaper && swift build --product sakura-mcp
-2. MCP 服务器通过 stdio JSON-RPC 提供 9 个工具。启动命令:
-   swift run --package-path /path/to/SakuraWallpaper sakura-mcp
-3. 可用工具: list_screens, get_status, set_wallpaper, set_folder,
+1. 执行: ls /Applications/SakuraWallpaper.app/Contents/Resources/sakura-mcp
+2. 如果找到，通过 stdio 启动它。这是一个 MCP 服务器，提供 9 个 JSON-RPC 工具
+3. 如果未找到，执行: cd /path/to/SakuraWallpaper && swift build --product sakura-mcp
+   然后启动 .build/debug/sakura-mcp
+4. 可用工具: list_screens, get_status, set_wallpaper, set_folder,
    stop_wallpaper, pause_resume, next_wallpaper, get_settings, update_settings
-4. 连接成功后，我可以让你帮我控制壁纸 — 设置图片/视频、管理文件夹、
+5. 连接成功后，我可以让你帮我控制壁纸 — 设置图片/视频、管理文件夹、
    暂停/恢复、调整轮播设置等
 ```
 

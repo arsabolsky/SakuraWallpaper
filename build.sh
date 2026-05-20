@@ -81,6 +81,12 @@ cp -R Resources "$APP_DIR/Contents/"
 # 复制图标
 cp AppIcon.icns "$APP_DIR/Contents/Resources/"
 
+# 编译 MCP 服务器 (AI 智能体控制) — 使用 SPM
+echo "Building MCP server..."
+swift build --product sakura-mcp -c release 2>&1 | tail -1
+cp .build/release/sakura-mcp "$APP_DIR/Contents/Resources/sakura-mcp"
+echo "MCP server: $(lipo -info "$APP_DIR/Contents/Resources/sakura-mcp" | sed 's/.*are: //')"
+
 # 创建 Info.plist
 cat > "$APP_DIR/Contents/Info.plist" << EOF
 <?xml version="1.0" encoding="UTF-8"?>

@@ -73,13 +73,7 @@ Requirements: macOS 12.0+, Xcode Command Line Tools
 
 ## MCP — AI Agent Control
 
-SakuraWallpaper ships with an **MCP (Model Context Protocol) server** that lets AI agents (Claude Desktop, Cursor, Codex) control your wallpapers directly.
-
-### Build MCP CLI
-
-```
-swift build --product sakura-mcp
-```
+SakuraWallpaper ships with an **MCP (Model Context Protocol) server** that lets AI agents (Claude Desktop, Cursor, Codex) control your wallpapers directly. The binary is bundled inside the app — no separate download or build required.
 
 ### Connect to Claude Desktop
 
@@ -89,32 +83,35 @@ Add this to your `claude_desktop_config.json`:
 {
   "mcpServers": {
     "sakura-wallpaper": {
-      "command": "swift",
-      "args": ["run", "--package-path", "/path/to/SakuraWallpaper", "sakura-mcp"]
+      "command": "/Applications/SakuraWallpaper.app/Contents/Resources/sakura-mcp"
     }
   }
 }
 ```
 
-Restart Claude Desktop, then you can say things like:
+Restart Claude Desktop, then say things like:
 - "Set my wallpaper to a minimal mountain landscape image"
 - "Pause all wallpapers"
 - "Switch my external monitor to the next wallpaper"
 - "Set my laptop screen to rotate wallpapers from ~/Pictures/Nature every 10 minutes with shuffle on"
 
+> **Note:** If you installed SakuraWallpaper elsewhere, adjust the path accordingly.
+
 ### AI Self-Install Prompt
 
-If your AI agent doesn't have a pre-configured connection, paste this prompt to let it build and run the MCP server itself:
+If your AI agent doesn't have a pre-configured connection, paste this prompt — it will find and start the MCP server on its own:
 
 ```
-You are setting up SakuraWallpaper MCP server. Follow these steps:
+You are setting up SakuraWallpaper MCP server. Find and start the binary:
 
-1. Run: cd /path/to/SakuraWallpaper && swift build --product sakura-mcp
-2. The MCP server exposes 9 tools over stdio JSON-RPC. Start it with:
-   swift run --package-path /path/to/SakuraWallpaper sakura-mcp
-3. Tool list: list_screens, get_status, set_wallpaper, set_folder,
+1. Run: ls /Applications/SakuraWallpaper.app/Contents/Resources/sakura-mcp
+2. If found, start it as a subprocess over stdio. This is an MCP server with
+   9 JSON-RPC tools.
+3. If not found, run: cd /path/to/SakuraWallpaper && swift build --product sakura-mcp
+   then start .build/debug/sakura-mcp
+4. Tool list: list_screens, get_status, set_wallpaper, set_folder,
    stop_wallpaper, pause_resume, next_wallpaper, get_settings, update_settings
-4. Once connected, I can ask you to control my wallpapers — set images/videos,
+5. Once connected, I can ask you to control my wallpapers — set images/videos,
    manage folders, pause/resume, adjust rotation settings, etc.
 ```
 
