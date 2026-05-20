@@ -71,6 +71,67 @@ open build/SakuraWallpaper.app
 
 Requirements: macOS 12.0+, Xcode Command Line Tools
 
+## MCP — AI Agent Control
+
+SakuraWallpaper ships with an **MCP (Model Context Protocol) server** that lets AI agents (Claude Desktop, Cursor, Codex) control your wallpapers directly.
+
+### Build MCP CLI
+
+```
+swift build --product sakura-mcp
+```
+
+### Connect to Claude Desktop
+
+Add this to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "sakura-wallpaper": {
+      "command": "swift",
+      "args": ["run", "--package-path", "/path/to/SakuraWallpaper", "sakura-mcp"]
+    }
+  }
+}
+```
+
+Restart Claude Desktop, then you can say things like:
+- "Set my wallpaper to a minimal mountain landscape image"
+- "Pause all wallpapers"
+- "Switch my external monitor to the next wallpaper"
+- "Set my laptop screen to rotate wallpapers from ~/Pictures/Nature every 10 minutes with shuffle on"
+
+### AI Self-Install Prompt
+
+If your AI agent doesn't have a pre-configured connection, paste this prompt to let it build and run the MCP server itself:
+
+```
+You are setting up SakuraWallpaper MCP server. Follow these steps:
+
+1. Run: cd /path/to/SakuraWallpaper && swift build --product sakura-mcp
+2. The MCP server exposes 9 tools over stdio JSON-RPC. Start it with:
+   swift run --package-path /path/to/SakuraWallpaper sakura-mcp
+3. Tool list: list_screens, get_status, set_wallpaper, set_folder,
+   stop_wallpaper, pause_resume, next_wallpaper, get_settings, update_settings
+4. Once connected, I can ask you to control my wallpapers — set images/videos,
+   manage folders, pause/resume, adjust rotation settings, etc.
+```
+
+### Available MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `list_screens` | List all connected displays |
+| `get_status` | Current wallpaper status per screen |
+| `set_wallpaper` | Set a single image/video file on one or all screens |
+| `set_folder` | Set a folder for rotational wallpapers |
+| `stop_wallpaper` | Stop wallpaper on one or all screens |
+| `pause_resume` | Pause or resume playback |
+| `next_wallpaper` | Skip to the next wallpaper |
+| `get_settings` | Read current configuration |
+| `update_settings` | Change rotation interval, shuffle, fit mode, etc. |
+
 ## Usage
 
 1. **Drag** a wallpaper file/folder into the preview area, or **click the preview area** to choose in Finder
@@ -137,6 +198,12 @@ SakuraWallpaper/
 ├── main.swift                 # Entry point
 ├── build.sh                   # Build script
 ├── AppIcon.icns               # App icon
+├── Sources/sakura-mcp/        # MCP server (AI agent control)
+│   ├── main.swift             #   Entry point
+│   ├── MCPServer.swift        #   JSON-RPC stdio transport
+│   ├── ToolRegistry.swift     #   Tool dispatch
+│   ├── IPCSync.swift          #   GUI sync via notifications
+│   └── Tools/                 #   9 MCP tools
 ├── Resources/
 │   ├── en.lproj/              # English strings
 │   └── zh-Hans.lproj/         # Chinese strings

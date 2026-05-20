@@ -71,6 +71,67 @@ open build/SakuraWallpaper.app
 
 要求: macOS 12.0+, Xcode Command Line Tools
 
+## MCP — AI 智能体控制
+
+SakuraWallpaper 内置 **MCP (Model Context Protocol) 服务器**，让 AI 智能体（Claude Desktop、Cursor、Codex）直接操控你的壁纸。
+
+### 编译 MCP 命令行工具
+
+```
+swift build --product sakura-mcp
+```
+
+### 接入 Claude Desktop
+
+在 `claude_desktop_config.json` 中添加：
+
+```json
+{
+  "mcpServers": {
+    "sakura-wallpaper": {
+      "command": "swift",
+      "args": ["run", "--package-path", "/path/to/SakuraWallpaper", "sakura-mcp"]
+    }
+  }
+}
+```
+
+重启 Claude Desktop 后，你可以直接说：
+- "帮我把壁纸换成一张极简山水风景图"
+- "暂停所有壁纸"
+- "把我的外接显示器切到下一张壁纸"
+- "让笔记本屏幕每 10 分钟从 ~/图片/自然 文件夹随机切换壁纸"
+
+### AI 自安装提示词
+
+如果你的 AI 智能体没有预设连接，将以下提示词粘贴给它，让它自行编译并启动 MCP 服务：
+
+```
+请帮我设置 SakuraWallpaper 的 MCP 服务器，按以下步骤操作：
+
+1. 执行: cd /path/to/SakuraWallpaper && swift build --product sakura-mcp
+2. MCP 服务器通过 stdio JSON-RPC 提供 9 个工具。启动命令:
+   swift run --package-path /path/to/SakuraWallpaper sakura-mcp
+3. 可用工具: list_screens, get_status, set_wallpaper, set_folder,
+   stop_wallpaper, pause_resume, next_wallpaper, get_settings, update_settings
+4. 连接成功后，我可以让你帮我控制壁纸 — 设置图片/视频、管理文件夹、
+   暂停/恢复、调整轮播设置等
+```
+
+### 可用 MCP 工具
+
+| 工具 | 说明 |
+|------|------|
+| `list_screens` | 列出所有显示器 |
+| `get_status` | 查看每块屏幕的当前壁纸状态 |
+| `set_wallpaper` | 为指定/全部屏幕设置单张图片或视频 |
+| `set_folder` | 为指定/全部屏幕设置文件夹轮播 |
+| `stop_wallpaper` | 停止指定/全部屏幕的壁纸 |
+| `pause_resume` | 暂停或恢复播放 |
+| `next_wallpaper` | 切换到下一张壁纸 |
+| `get_settings` | 读取当前配置 |
+| `update_settings` | 修改轮播间隔、随机、适配模式等 |
+
 ## 使用方法
 
 1. 在主预览区 **拖拽** 壁纸文件/文件夹，或 **点击预览区** 打开访达选择
@@ -137,6 +198,12 @@ SakuraWallpaper/
 ├── main.swift                 # 入口文件
 ├── build.sh                   # 构建脚本
 ├── AppIcon.icns               # 应用图标
+├── Sources/sakura-mcp/        # MCP 服务器 (AI 智能体控制)
+│   ├── main.swift             #   入口
+│   ├── MCPServer.swift        #   JSON-RPC stdio 传输
+│   ├── ToolRegistry.swift     #   工具分发
+│   ├── IPCSync.swift          #   通知中心同步
+│   └── Tools/                 #   9 个 MCP 工具
 ├── Resources/
 │   ├── en.lproj/              # 英文字符串
 │   └── zh-Hans.lproj/         # 中文字符串
