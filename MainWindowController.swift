@@ -1139,14 +1139,21 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
 
         if panel.runModal() == .OK, let url = panel.url {
             do {
-                try setWallpaper(url: url)
+                // Create a security-scoped bookmark for persistent access
+                // across app launches — prevents repeated TCC prompts
+                let bookmarkData = try url.bookmarkData(
+                    options: .withSecurityScope,
+                    includingResourceValuesForKeys: nil,
+                    relativeTo: nil
+                )
+                try setWallpaper(url: url, bookmarkData: bookmarkData)
             } catch {
                 showError(error)
             }
         }
     }
 
-    private func setWallpaper(url: URL) throws {
+    private func setWallpaper(url: URL, bookmarkData: Data? = nil) throws {
         var isDir: ObjCBool = false
         guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) else {
             throw WallpaperError.fileNotFound
@@ -1161,7 +1168,8 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
                 isRotationEnabled: (rotationSwitch.state == .on),
                 includeSubfolders: (includeSubfoldersSwitch.state == .on),
                 isFolderMode: true,
-                isSynced: selectedScreen.map { SettingsManager.shared.screenConfig(for: SettingsManager.screenIdentifier($0)).isSynced } ?? true
+                isSynced: selectedScreen.map { SettingsManager.shared.screenConfig(for: SettingsManager.screenIdentifier($0)).isSynced } ?? true,
+                securityScopedBookmark: bookmarkData
             )
             if let screen = selectedScreen {
                 wallpaperManager.setFolder(url: url, for: screen, config: config)
@@ -1407,7 +1415,12 @@ class MainWindowController: NSWindowController, NSCollectionViewDataSource, NSCo
     private func handleDroppedURLs(_ urls: [URL]) -> Bool {
         guard let url = urls.first(where: { isAcceptableDropURL($0) }) else { return false }
         do {
-            try setWallpaper(url: url)
+            let bookmarkData = try url.bookmarkData(
+                options: .withSecurityScope,
+                includingResourceValuesForKeys: nil,
+                relativeTo: nil
+            )
+            try setWallpaper(url: url, bookmarkData: bookmarkData)
             return true
         } catch {
             showError(error)

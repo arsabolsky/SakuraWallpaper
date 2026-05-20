@@ -19,6 +19,7 @@ struct Screen_Config: Codable, Equatable {
     var isSynced: Bool
     var wallpaperFit: WallpaperFitMode
     var isFolderBrowserVisible: Bool
+    var securityScopedBookmark: Data?
 
     static let `default` = Screen_Config(
         folderPath: nil,
@@ -44,6 +45,7 @@ struct Screen_Config: Codable, Equatable {
         case isSynced                = "is_synced"
         case wallpaperFit            = "wallpaper_fit"
         case isFolderBrowserVisible  = "is_folder_browser_visible"
+        case securityScopedBookmark  = "security_scoped_bookmark"
     }
 
     init(
@@ -56,7 +58,8 @@ struct Screen_Config: Codable, Equatable {
         isFolderMode: Bool,
         isSynced: Bool,
         wallpaperFit: WallpaperFitMode = .fill,
-        isFolderBrowserVisible: Bool = false
+        isFolderBrowserVisible: Bool = false,
+        securityScopedBookmark: Data? = nil
     ) {
         self.folderPath = folderPath
         self.wallpaperPath = wallpaperPath
@@ -68,6 +71,7 @@ struct Screen_Config: Codable, Equatable {
         self.isSynced = isSynced
         self.wallpaperFit = wallpaperFit
         self.isFolderBrowserVisible = isFolderBrowserVisible
+        self.securityScopedBookmark = securityScopedBookmark
     }
 
     init(from decoder: Decoder) throws {
@@ -88,6 +92,7 @@ struct Screen_Config: Codable, Equatable {
             wallpaperFit = d.wallpaperFit
         }
         isFolderBrowserVisible = try container.decodeIfPresent(Bool.self, forKey: .isFolderBrowserVisible) ?? d.isFolderBrowserVisible
+        securityScopedBookmark = try container.decodeIfPresent(Data.self, forKey: .securityScopedBookmark) ?? d.securityScopedBookmark
     }
 }
 

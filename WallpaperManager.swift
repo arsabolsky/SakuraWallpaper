@@ -29,6 +29,7 @@ class WallpaperManager {
     private let lockScreenCaptureQueue = DispatchQueue(label: "com.sakura.wallpaper.lockscreen", qos: .userInitiated)
     private var transientDesktopSnapshotsByScreen: [String: URL] = [:]
     private var screensChangedWorkItem: DispatchWorkItem?
+    private var accessedSecurityScopedURLs: [URL] = []
 
     static let didRotateNotification = Notification.Name("WallpaperManagerDidRotate")
     static let playbackStateDidChangeNotification = Notification.Name("WallpaperManagerPlaybackStateDidChange")
@@ -1231,7 +1232,34 @@ class WallpaperManager {
     func restoreAllScreens() {
         for screen in NSScreen.screens {
             let id = SettingsManager.screenIdentifier(screen)
-            let config = SettingsManager.shared.screenConfig(for: id)
+            var config = SettingsManager.shared.screenConfig(for: id)
+
+            // Resolve security-scoped bookmark for persistent folder access
+            // without repeated TCC permission prompts
+            if let bookmarkData = config.securityScopedBookmark {
+                var isStale = false
+                if let resolvedURL = try? URL(
+                    resolvingBookmarkData: bookmarkData,
+                    options: .withSecurityScope,
+                    relativeTo: nil,
+                    bookmarkDataIsStale: &isStale
+                ) {
+                    if resolvedURL.startAccessingSecurityScopedResource() {
+                        accessedSecurityScopedURLs.append(resolvedURL)
+                    }
+                    if isStale {
+                        // Refresh stale bookmark
+                        if let newBookmark = try? resolvedURL.bookmarkData(
+                            options: .withSecurityScope,
+                            includingResourceValuesForKeys: nil,
+                            relativeTo: nil
+                        ) {
+                            config.securityScopedBookmark = newBookmark
+                            SettingsManager.shared.setScreenConfig(config, for: id)
+                        }
+                    }
+                }
+            }
 
             if let folderPath = config.folderPath,
                FileManager.default.fileExists(atPath: folderPath) {
@@ -1244,6 +1272,13 @@ class WallpaperManager {
             }
             // else: leave stopped
         }
+    }
+
+    func stopAllSecurityScopedAccess() {
+        for url in accessedSecurityScopedURLs {
+            url.stopAccessingSecurityScopedResource()
+        }
+        accessedSecurityScopedURLs.removeAll()
     }
 
     private func captureOriginalDesktopIfNeeded(for screen: NSScreen, screenID: String) {

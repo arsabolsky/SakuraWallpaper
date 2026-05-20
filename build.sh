@@ -70,6 +70,11 @@ rm "${BINARY}_arm64" "${BINARY}_x86_64"
 echo "Verifying universal binary..."
 lipo -info "$BINARY"
 
+# 代码签名 (ad-hoc) — 让 macOS TCC 能够在多次启动之间识别应用，
+# 避免每次启动都重复弹出下载文件夹访问权限提示
+echo "Code signing..."
+codesign --sign - --entitlements SakuraWallpaper.entitlements --force --deep "$APP_DIR"
+
 # 复制资源
 cp -R Resources "$APP_DIR/Contents/"
 

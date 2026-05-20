@@ -29,6 +29,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         wallpaperManager.stopAll()
+        wallpaperManager.stopAllSecurityScopedAccess()
     }
 
     private func setupStatusBar() {
