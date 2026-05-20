@@ -11,26 +11,64 @@ rm -rf "$BUILD_DIR"
 mkdir -p "$APP_DIR/Contents/MacOS"
 mkdir -p "$APP_DIR/Contents/Resources"
 
-# 编译
-echo "Compiling..."
-swiftc -o "$APP_DIR/Contents/MacOS/$APP_NAME" \
-    Screen_Config.swift \
-    SettingsManager.swift \
-    WallpaperBehavior.swift \
-    MediaType.swift \
-    PlaylistBuilder.swift \
-    AsyncWorkLimiter.swift \
-    Localization.swift \
-    PerformanceMonitor.swift \
-    ScreenPlayer.swift \
-    WallpaperManager.swift \
-    MainWindowController.swift \
-    ThumbnailItem.swift \
-    ThumbnailProvider.swift \
-    AboutWindowController.swift \
-    AppDelegate.swift \
-    main.swift \
-    -framework Cocoa -framework AVKit -framework AVFoundation -framework ServiceManagement -framework ImageIO -framework IOKit
+# 编译为通用二进制 (Universal Binary)
+# 同时支持 Apple Silicon (arm64) 和 Intel (x86_64) Mac
+# 使用 -target + -sdk 而不是 -arch，因为 -arch 需要完整 Xcode，
+# 而 -target 在仅有 Command Line Tools 的环境下也能交叉编译
+
+SOURCES=(
+    Screen_Config.swift
+    SettingsManager.swift
+    WallpaperBehavior.swift
+    MediaType.swift
+    PlaylistBuilder.swift
+    AsyncWorkLimiter.swift
+    Localization.swift
+    PerformanceMonitor.swift
+    ScreenPlayer.swift
+    WallpaperManager.swift
+    MainWindowController.swift
+    ThumbnailItem.swift
+    ThumbnailProvider.swift
+    AboutWindowController.swift
+    AppDelegate.swift
+    main.swift
+)
+
+FRAMEWORKS=(
+    -framework Cocoa
+    -framework AVKit
+    -framework AVFoundation
+    -framework ServiceManagement
+    -framework ImageIO
+    -framework IOKit
+)
+
+SDK_PATH=$(xcrun --show-sdk-path)
+DEPLOYMENT_TARGET="12.0"
+BINARY="$APP_DIR/Contents/MacOS/$APP_NAME"
+
+echo "Compiling for arm64 (Apple Silicon)..."
+swiftc -target arm64-apple-macosx"$DEPLOYMENT_TARGET" -sdk "$SDK_PATH" \
+    -o "${BINARY}_arm64" \
+    "${SOURCES[@]}" \
+    "${FRAMEWORKS[@]}"
+
+echo "Compiling for x86_64 (Intel)..."
+swiftc -target x86_64-apple-macosx"$DEPLOYMENT_TARGET" -sdk "$SDK_PATH" \
+    -o "${BINARY}_x86_64" \
+    "${SOURCES[@]}" \
+    "${FRAMEWORKS[@]}"
+
+echo "Creating universal binary..."
+lipo -create -output "$BINARY" \
+    "${BINARY}_arm64" \
+    "${BINARY}_x86_64"
+
+rm "${BINARY}_arm64" "${BINARY}_x86_64"
+
+echo "Verifying universal binary..."
+lipo -info "$BINARY"
 
 # 复制资源
 cp -R Resources "$APP_DIR/Contents/"
