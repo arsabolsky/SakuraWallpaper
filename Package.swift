@@ -67,6 +67,11 @@ let package = Package(
             name: "SakuraWallpaperCoreTests",
             dependencies: ["SakuraWallpaperCore"],
             path: "Tests/SakuraWallpaperCoreTests"
+        ),
+        .testTarget(
+            name: "sakura-mcpTests",
+            dependencies: ["sakura-mcp"],
+            path: "Tests/sakura-mcpTests"
         )
     ]
 )
