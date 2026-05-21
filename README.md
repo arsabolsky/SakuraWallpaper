@@ -115,6 +115,20 @@ You are setting up SakuraWallpaper MCP server. Find and start the binary:
    manage folders, pause/resume, adjust rotation settings, etc.
 ```
 
+### How MCP Coordinates with the App
+
+The MCP server is designed to behave like a safe remote control instead of a second competing wallpaper app:
+
+| Situation | Behavior |
+|-----------|----------|
+| SakuraWallpaper app is already running | MCP forwards wallpaper commands to the running app, so the app remains the single wallpaper controller |
+| SakuraWallpaper app is not running | MCP starts its own lightweight wallpaper engine and can control wallpapers independently |
+| A standalone MCP process is already controlling wallpapers | A second standalone MCP process refuses wallpaper-control requests instead of creating another wallpaper engine |
+| MCP is only forwarding to the app | The MCP process exits normally after the stdio session ends |
+| MCP is running standalone | The MCP process stays alive after stdin closes so wallpaper windows remain visible |
+
+This prevents flickering caused by multiple wallpaper engines fighting over the same desktop while still allowing AI agents to work when the main app is closed.
+
 ### Available MCP Tools
 
 | Tool | Description |

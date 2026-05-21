@@ -3,7 +3,9 @@ import SakuraWallpaperCore
 
 final class MCPServer {
     private let wallpaperManager: WallpaperManager?
-    private let registry = ToolRegistry()
+    private let forwarder: MCPGUIForwarder?
+    private let keepAliveAfterStdinCloses: Bool
+    private let registry: ToolRegistry
     private let decoder = JSONDecoder()
     private let encoder: JSONEncoder = {
         let e = JSONEncoder()
@@ -11,8 +13,16 @@ final class MCPServer {
         return e
     }()
 
-    init(wallpaperManager: WallpaperManager?) {
+    init(
+        wallpaperManager: WallpaperManager?,
+        forwarder: MCPGUIForwarder? = nil,
+        keepAliveAfterStdinCloses: Bool = false,
+        unavailableMessage: String? = nil
+    ) {
         self.wallpaperManager = wallpaperManager
+        self.forwarder = forwarder
+        self.keepAliveAfterStdinCloses = keepAliveAfterStdinCloses
+        self.registry = ToolRegistry(unavailableMessage: unavailableMessage)
         registry.registerAll(wallpaperManager: wallpaperManager)
     }
 
@@ -27,10 +37,10 @@ final class MCPServer {
             }
             handle(message)
         }
-        // stdin closed — keep process alive so ScreenPlayer windows persist.
-        // In Claude Desktop, stdin stays open indefinitely.
-        // From terminal pipes, this keeps the wallpaper visible after commands finish.
-        RunLoop.main.run()
+        if keepAliveAfterStdinCloses {
+            // stdin closed — keep standalone wallpaper windows visible.
+            RunLoop.main.run()
+        }
     }
 
     private func handle(_ message: JSONRPCMessage) {
@@ -54,6 +64,17 @@ final class MCPServer {
                 guard let toolName = params?["name"]?.stringValue,
                       let arguments = params?["arguments"]?.objectValue else {
                     send(.error(id: id, code: -32602, message: "Invalid params"))
+                    return
+                }
+                if let forwarder, forwarder.canForward(toolName: toolName) {
+                    do {
+                        let result = try forwarder.call(toolName: toolName, arguments: arguments)
+                        send(.response(id: id, result: result))
+                    } catch let error as MCPToolError {
+                        send(.error(id: id, code: -32000, message: error.message))
+                    } catch {
+                        send(.error(id: id, code: -32603, message: error.localizedDescription))
+                    }
                     return
                 }
                 do {

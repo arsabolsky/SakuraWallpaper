@@ -7,14 +7,53 @@ import SakuraWallpaperCore
 let hasGUI = !NSScreen.screens.isEmpty
 
 var wallpaperManager: WallpaperManager?
-if hasGUI {
+var forwarder: MCPGUIForwarder?
+var singleInstanceLock: MCPSingleInstanceLock?
+let guiEndpointAvailable = MCPGUIForwarder.guiEndpointAvailable()
+let acquiredStandaloneLock: Bool
+if hasGUI && !guiEndpointAvailable {
+    let lock = MCPSingleInstanceLock()
+    acquiredStandaloneLock = lock.acquire()
+    singleInstanceLock = lock
+} else {
+    acquiredStandaloneLock = false
+}
+let runMode = MCPRunMode.resolve(
+    hasGUI: hasGUI,
+    guiEndpointAvailable: guiEndpointAvailable,
+    acquiredStandaloneLock: acquiredStandaloneLock
+)
+
+switch runMode {
+case .forwardToGUI:
+    forwarder = MCPGUIForwarder()
+case .standalone:
     NSApplication.shared.setActivationPolicy(.accessory)
     wallpaperManager = WallpaperManager()
     // Don't restore old state — MCP server is stateless.
     // User explicitly sets wallpapers via tools.
+case .rejectDuplicate:
+    fputs("Another standalone sakura-mcp is already running. Start SakuraWallpaper.app to share control, or stop the existing MCP process.\n", stderr)
+case .noGUI:
+    break
 }
 
-let server = MCPServer(wallpaperManager: wallpaperManager)
+let unavailableMessage: String?
+switch runMode {
+case .rejectDuplicate:
+    unavailableMessage = "Another standalone sakura-mcp is already running. Start SakuraWallpaper.app to share control, or stop the existing MCP process."
+case .noGUI:
+    unavailableMessage = "Wallpaper engine unavailable — run from GUI session"
+case .forwardToGUI, .standalone:
+    unavailableMessage = nil
+}
+
+let server = MCPServer(
+    wallpaperManager: wallpaperManager,
+    forwarder: forwarder,
+    keepAliveAfterStdinCloses: runMode == .standalone,
+    unavailableMessage: unavailableMessage
+)
 
 IPCSync.observeStateChanges { _ in }
 

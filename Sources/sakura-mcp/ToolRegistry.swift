@@ -17,8 +17,13 @@ struct MCPToolDefinition {
 
 final class ToolRegistry {
     private var handlers: [String: ([String: JSONRPCValue]) throws -> JSONRPCValue] = [:]
+    private let unavailableMessage: String?
 
     var toolDefinitions: [MCPToolDefinition] = []
+
+    init(unavailableMessage: String? = nil) {
+        self.unavailableMessage = unavailableMessage
+    }
 
     func register(_ definition: MCPToolDefinition, handler: @escaping ([String: JSONRPCValue]) throws -> JSONRPCValue) {
         toolDefinitions.append(definition)
@@ -26,6 +31,9 @@ final class ToolRegistry {
     }
 
     func invoke(name: String, arguments: [String: JSONRPCValue]) throws -> JSONRPCValue {
+        if let unavailableMessage, name != "list_screens", name != "get_settings" {
+            throw MCPToolError(message: unavailableMessage)
+        }
         guard let handler = handlers[name] else {
             throw MCPToolError(message: "Unknown tool: \(name)")
         }

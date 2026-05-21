@@ -20,6 +20,7 @@ SOURCES=(
     Screen_Config.swift
     SettingsManager.swift
     WallpaperBehavior.swift
+    MCPControlTypes.swift
     MediaType.swift
     PlaylistBuilder.swift
     AsyncWorkLimiter.swift
@@ -27,6 +28,7 @@ SOURCES=(
     PerformanceMonitor.swift
     ScreenPlayer.swift
     WallpaperManager.swift
+    MCPGUIControlServer.swift
     MainWindowController.swift
     ThumbnailItem.swift
     ThumbnailProvider.swift
