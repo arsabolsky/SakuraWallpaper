@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Extension Info.plist.
+     EXExtensionPointIdentifier registers the extension with the system wallpaper picker.
+     Copied from PhospheneExtension/Info.plist — the extension point identifier is OS-level
+     and identical for any macOS 26 wallpaper extension. -->
+<plist version="1.0">
+<dict>
+    <key>EXAppExtensionAttributes</key>
+    <dict>
+        <key>EXExtensionPointIdentifier</key>
+        <string>com.apple.wallpaper</string>
+    </dict>
+</dict>
+</plist>

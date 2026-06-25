@@ -93,58 +93,66 @@ cat > "$APP_DIR/Contents/Info.plist" << EOF
 EOF
 
 # ---------------------------------------------------------------------------
-# Compile extension (Phase 1+: sources are added to Extension/ incrementally)
+# Compile extension (Phase 1: entry point, XPC handler skeleton, state, helpers)
 # ---------------------------------------------------------------------------
-# Extension sources are populated starting in Phase 1. This block is a no-op
-# until Extension/ contains .swift files; it will be uncommented and filled in
-# as each phase adds source files to the Extension/ directory.
-#
-# EXT_SWIFT_SRCS=( $(find Extension -name '*.swift' | sort) )
-# if [ "${#EXT_SWIFT_SRCS[@]}" -gt 0 ]; then
-#     echo "Compiling extension..."
-#     mkdir -p "$EXT_DIR/Contents/MacOS"
-#
-#     swiftc -o "$EXT_DIR/Contents/MacOS/$EXT_NAME" \
-#         "${CORE_SRCS[@]}" \
-#         "${EXT_SWIFT_SRCS[@]}" \
-#         -framework Foundation -framework AVFoundation -framework CoreMedia \
-#         -framework IOKit -framework QuartzCore
-#
-#     # Write extension Info.plist (NSExtension key registers the wallpaper extension point)
-#     cat > "$EXT_DIR/Contents/Info.plist" << EXTPLIST
-# <?xml version="1.0" encoding="UTF-8"?>
-# <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-# <plist version="1.0">
-# <dict>
-#     <key>CFBundleExecutable</key>
-#     <string>$EXT_NAME</string>
-#     <key>CFBundleIdentifier</key>
-#     <string>$EXT_BUNDLE_ID</string>
-#     <key>CFBundleName</key>
-#     <string>$EXT_NAME</string>
-#     <key>CFBundleVersion</key>
-#     <string>$APP_VERSION</string>
-#     <key>CFBundleShortVersionString</key>
-#     <string>$APP_VERSION</string>
-#     <key>LSMinimumSystemVersion</key>
-#     <string>26.0</string>
-#     <key>NSExtension</key>
-#     <dict>
-#         <key>NSExtensionPointIdentifier</key>
-#         <string>com.apple.wallpaper-extension</string>
-#         <key>NSExtensionPrincipalClass</key>
-#         <string>SakuraWallpaperExtension</string>
-#     </dict>
-# </dict>
-# </plist>
-# EXTPLIST
-#
-#     # Apply sandbox entitlements to extension
-#     # The extension must run sandboxed; the app does not.
-#     codesign --force --sign - \
-#         --entitlements Extension/SakuraWallpaperExtension.entitlements \
-#         "$EXT_DIR"
-# fi
+# The extension uses Objective-C bridging (for CAContext, XPC protocols, audit tokens),
+# so it must be compiled with swiftc's -import-objc-header flag pointing at the bridging header.
+EXT_SWIFT_SRCS=( $(find Extension -name '*.swift' | sort) )
+if [ "${#EXT_SWIFT_SRCS[@]}" -gt 0 ]; then
+    echo "Compiling extension (${#EXT_SWIFT_SRCS[@]} Swift files)..."
+    mkdir -p "$EXT_DIR/Contents/MacOS"
+    mkdir -p "$EXT_DIR/Contents/Resources"
+
+    swiftc -o "$EXT_DIR/Contents/MacOS/$EXT_NAME" \
+        -import-objc-header Extension/SakuraWallpaperExtension-Bridging-Header.h \
+        "${CORE_SRCS[@]}" \
+        "${EXT_SWIFT_SRCS[@]}" \
+        -framework Foundation -framework AppKit \
+        -framework ExtensionFoundation \
+        -framework AVFoundation -framework CoreMedia \
+        -framework IOKit -framework IOSurface \
+        -framework QuartzCore -framework Security
+
+    # Copy the extension's Info.plist (registers com.apple.wallpaper extension point).
+    cp Extension/Info.plist "$EXT_DIR/Contents/"
+
+    # Write the main extension bundle Info.plist (CFBundle* keys + EXAppExtensionAttributes).
+    # The EXAppExtensionAttributes dict from Extension/Info.plist is embedded here too
+    # so the OS sees both CFBundle metadata and the extension point registration.
+    cat > "$EXT_DIR/Contents/Info.plist" << EXTPLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>$EXT_NAME</string>
+    <key>CFBundleIdentifier</key>
+    <string>$EXT_BUNDLE_ID</string>
+    <key>CFBundleName</key>
+    <string>$EXT_NAME</string>
+    <key>CFBundleVersion</key>
+    <string>$APP_VERSION</string>
+    <key>CFBundleShortVersionString</key>
+    <string>$APP_VERSION</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>26.0</string>
+    <key>EXAppExtensionAttributes</key>
+    <dict>
+        <key>EXExtensionPointIdentifier</key>
+        <string>com.apple.wallpaper</string>
+    </dict>
+</dict>
+</plist>
+EXTPLIST
+
+    # Apply sandbox entitlements to the extension.
+    # The extension must run sandboxed; the app does not.
+    codesign --force --sign - \
+        --entitlements Extension/SakuraWallpaperExtension.entitlements \
+        "$EXT_DIR"
+
+    echo "Extension built: $EXT_DIR"
+fi
 
 echo "Done! App: $APP_DIR"
 
