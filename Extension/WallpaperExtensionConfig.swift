@@ -114,8 +114,9 @@ struct WallpaperExtensionConfig: AppExtensionConfiguration {
 
         connection.invalidationHandler = { [weak handler] in
             handler?.agentProxy = nil
-            let removed = SakuraExtensionState.shared.removeAllContexts()
-            guard !removed.isEmpty else {
+            let liveCount = SakuraExtensionState.shared.activeContextCount
+            SakuraExtensionState.shared.removeAllContexts()
+            guard liveCount > 0 else {
                 // Benign teardown: no live contexts (settings-only connection, or already inactive).
                 extensionLog("XPC invalidated")
                 return
@@ -123,10 +124,10 @@ struct WallpaperExtensionConfig: AppExtensionConfiguration {
             // Abnormal path: the host connection died while live rendering contexts exist.
             // Deep standby / hibernation can tear the connection after hours asleep. The
             // wallpaper keeps compositing a dead surface, leaving the desktop grey/black.
-            // Normal teardown arrives as invalidate(withId:) so `removed` is empty there.
+            // Normal teardown arrives as invalidate(withId:) so liveCount is 0 there.
             // Exiting here forces the framework to relaunch the extension and re-acquire
             // every display — the empirically verified recovery path (see Phosphene #2).
-            extensionLog("XPC invalidated mid-render — freed \(removed.count) context(s); exiting to force re-acquire")
+            extensionLog("XPC invalidated mid-render — freed \(liveCount) context(s); exiting to force re-acquire")
             exit(0)
         }
 

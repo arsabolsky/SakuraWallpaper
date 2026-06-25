@@ -7,7 +7,6 @@
 //
 // Callouts that depend on later phases are marked TODO and will be added as each
 // phase lands:
-//   Phase 2 — PowerMonitor / PlaybackPolicy → applyPolicy on renderers
 //   Phase 3 — SakuraLibrary.shared.scan() + observePrefsChanges()
 
 import AppKit
@@ -42,7 +41,14 @@ final class SakuraWallpaperExtension: NSObject, AppExtension {
             observeScreenLockState()
             observeLibraryChanges()
 
-            // TODO(Phase 2): SakuraPowerMonitor.shared.startMonitoring() + policy Task
+            // Start the power monitor and spawn a Task that recomputes policy whenever
+            // any power condition changes (thermal, battery, brightness, game mode).
+            SakuraPowerMonitor.shared.startMonitoring()
+            Task.detached(priority: .utility) {
+                for await _ in SakuraPowerMonitor.shared.stateChanges() {
+                    SakuraWallpaperExtension.recomputeAndApplyPolicy()
+                }
+            }
 
         } else {
             let err = String(cString: dlerror())
@@ -127,21 +133,25 @@ final class SakuraWallpaperExtension: NSObject, AppExtension {
             object: nil, queue: .main
         ) { _ in
             SakuraExtensionState.shared.isDisplayAsleep = true
-            // TODO(Phase 2): SakuraExtensionState.shared.forEachRenderer { $0.applyPolicy(.paused) }
-            extensionLog("[Extension] Displays asleep — will pause all renderers (Phase 2)")
+            // Displays asleep — pause all renderers immediately without animation.
+            // SakuraPowerMonitor will also fire a state change (brightness drops to zero),
+            // but this direct path ensures renderers pause even without a backlight event.
+            SakuraExtensionState.shared.forEachRenderer { $0.applyPolicy(.paused) }
+            extensionLog("[Extension] Displays asleep — all renderers paused")
         }
         center.addObserver(
             forName: NSWorkspace.screensDidWakeNotification,
             object: nil, queue: .main
         ) { _ in
             SakuraExtensionState.shared.isDisplayAsleep = false
-            // TODO(Phase 2): SakuraWallpaperExtension.recomputeAndApplyPolicy()
-            extensionLog("[Extension] Displays awake — will recompute policy (Phase 2)")
-
-            // Recompute after 1 s to catch pending WallpaperAgent presentation mode updates.
+            // Recompute immediately so renderers resume if conditions allow.
+            SakuraWallpaperExtension.recomputeAndApplyPolicy()
+            // Recompute again after 1 s to catch any delayed WallpaperAgent presentation
+            // mode update that arrives after screensDidWake.
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                // TODO(Phase 2): SakuraWallpaperExtension.recomputeAndApplyPolicy()
+                SakuraWallpaperExtension.recomputeAndApplyPolicy()
             }
+            extensionLog("[Extension] Displays awake — policy recomputed")
         }
     }
 
@@ -164,9 +174,40 @@ final class SakuraWallpaperExtension: NSObject, AppExtension {
             object: nil, queue: .main
         ) { _ in
             SakuraExtensionState.shared.isScreenLocked = false
-            // TODO(Phase 2): SakuraWallpaperExtension.recomputeAndApplyPolicy()
-            extensionLog("[Extension] Screen unlocked — will recompute policy (Phase 2)")
+            // Screen unlocked — resume renderers with animation (2s ease-in, Apple-style).
+            SakuraWallpaperExtension.recomputeAndApplyPolicy(animated: true)
+            extensionLog("[Extension] Screen unlocked — policy recomputed (animated)")
         }
+    }
+
+    // MARK: - Policy recompute
+
+    /// Compute the correct SakuraPlaybackPolicy from all current system state and
+    /// apply it to every active renderer. Safe to call from any queue — reads state
+    /// under the OSAllocatedUnfairLock and calls forEachRenderer outside the lock.
+    ///
+    /// `animated`: pass true when transitioning to/from the lock screen so the
+    /// renderer uses the 2s ease-in-out ramp. All other callers use false.
+    ///
+    /// Phase 3 will add SakuraPrefs reading to supply alwaysPauseDesktop,
+    /// pauseWhenOccluded, desktopOccluded, and userPaused. Until then these
+    /// default to off/false so no rendering is unnecessarily suppressed.
+    static func recomputeAndApplyPolicy(animated: Bool = false) {
+        let state = SakuraExtensionState.shared
+        let power = SakuraPowerMonitor.shared.currentState
+
+        let policy = SakuraPlaybackPolicy.compute(
+            presentationMode: state.presentationMode,
+            activityState: state.activityState,
+            userPaused: false,                  // TODO(Phase 3): read from SakuraPrefs
+            alwaysPauseDesktop: false,          // TODO(Phase 3): read from SakuraPrefs
+            pauseWhenOccluded: false,           // TODO(Phase 3): read from SakuraPrefs
+            desktopOccluded: false,             // TODO(Phase 3): read from SakuraPrefs
+            powerState: power
+        )
+
+        extensionLog("[Policy] \(policy) (mode: \(state.presentationMode), battery: \(power.batteryLevel)%, thermal: \(power.thermalState.rawValue))")
+        state.forEachRenderer { $0.applyPolicy(policy, animated: animated) }
     }
 
     // MARK: - Library changes

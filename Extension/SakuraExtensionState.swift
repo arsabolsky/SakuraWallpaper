@@ -2,7 +2,7 @@
 // Adapted from PhospheneExtension/WallpaperState.swift.
 // Changes from Phosphene original:
 //   - Renamed to SakuraExtensionState / SakuraContext
-//   - renderer field typed as AnyObject? (placeholder until SakuraRenderer lands in Phase 2)
+//   - renderer typed as SakuraRenderer? (was AnyObject? in Phase 1 placeholder)
 //   - Darwin notification name uses SakuraNotification.libraryChanged
 //   - Removed WallpaperPrefs.shared.setActive call (Phase 3)
 
@@ -18,8 +18,9 @@ struct SakuraContext: @unchecked Sendable {
     /// Private CAContext held as AnyObject — its contextId routes frames to WindowServer.
     let caContext: AnyObject
     let rootLayer: CALayer
-    /// Phase 1 placeholder — replaced with SakuraRenderer in Phase 2.
-    let renderer: AnyObject?
+    /// The active video renderer for this context.
+    /// nil during the brief window between acquire() and the first start() call.
+    let renderer: SakuraRenderer?
     /// DirectDisplayID for this context, used to route per-display policy updates.
     let displayID: UInt32?
     /// The video UUID chosen for this context (from choiceConfiguration in acquire).
@@ -101,16 +102,26 @@ final class SakuraExtensionState: Sendable {
         }
     }
 
-    /// Remove all contexts and return them so callers can stop their renderers.
-    @discardableResult
-    func removeAllContexts() -> [SakuraContext] {
-        lock.withLock { state in
+    /// Remove all contexts and stop their renderers.
+    func removeAllContexts() {
+        let all: [SakuraContext] = lock.withLock { state in
             let all = Array(state.activeContexts.values)
             state.activeContexts.removeAll()
             state.wallpaperIDToContext.removeAll()
             return all
         }
-        // Phase 2: call renderer.stop() on each returned context here
+        // Stop renderers outside the lock — renderer.stop() dispatches to the
+        // renderer queue and must not hold the state lock while doing so.
+        for ctx in all { ctx.renderer?.stop() }
+    }
+
+    /// Call a closure on every active renderer. Extracts renderers under the lock,
+    /// releases the lock, then calls the closure — safe against re-entrancy.
+    func forEachRenderer(_ body: (SakuraRenderer) -> Void) {
+        let renderers: [SakuraRenderer] = lock.withLock { state in
+            state.activeContexts.values.compactMap { $0.renderer }
+        }
+        for renderer in renderers { body(renderer) }
     }
 
     var activeContextCount: Int {

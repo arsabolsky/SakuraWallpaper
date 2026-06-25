@@ -251,7 +251,7 @@ final class SakuraXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
     }
 
     func download(withChoiceID _: Any?,
-                  reply: @escaping @Sendable ((any Error)?) -> Void) -> Any? {
+                  reply: @escaping ((any Error)?) -> Void) -> Any? {
         extensionLog("download(stub)")
         reply(nil)
         return nil
