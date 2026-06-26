@@ -88,6 +88,10 @@ cat > "$APP_DIR/Contents/Info.plist" << EOF
 <dict>
     <key>CFBundleExecutable</key>
     <string>$APP_NAME</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
@@ -143,16 +147,29 @@ if [ "${#EXT_SWIFT_SRCS[@]}" -gt 0 ]; then
 <dict>
     <key>CFBundleExecutable</key>
     <string>$EXT_NAME</string>
+    <!-- CFBundlePackageType MUST be "XPC!" for an app extension. Xcode injects this
+         automatically; our hand-written plist must set it explicitly or the system
+         registers the bundle (pluginkit sees it) but the wallpaper picker will not
+         treat it as a loadable extension and it never appears in System Settings. -->
+    <key>CFBundlePackageType</key>
+    <string>XPC!</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
     <key>CFBundleIdentifier</key>
     <string>$EXT_BUNDLE_ID</string>
     <key>CFBundleName</key>
     <string>$EXT_NAME</string>
+    <key>CFBundleDisplayName</key>
+    <string>SakuraWallpaper</string>
     <key>CFBundleVersion</key>
     <string>$APP_VERSION</string>
     <key>CFBundleShortVersionString</key>
     <string>$APP_VERSION</string>
     <key>LSMinimumSystemVersion</key>
     <string>26.0</string>
+    <!-- Matches Phosphene's INFOPLIST_KEY_LSUIElement = YES for its extension target. -->
+    <key>LSUIElement</key>
+    <true/>
     <key>EXAppExtensionAttributes</key>
     <dict>
         <key>EXExtensionPointIdentifier</key>
