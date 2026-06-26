@@ -35,21 +35,20 @@ CORE_SRCS=(
 # ---------------------------------------------------------------------------
 APP_SRCS=(
     App/Localization.swift
-    App/PerformanceMonitor.swift
-    App/ScreenPlayer.swift
-    App/WallpaperManager.swift
-    App/MainWindowController.swift
-    App/ThumbnailItem.swift
-    App/ThumbnailProvider.swift
-    App/AboutWindowController.swift
-    App/AppDelegate.swift
-    App/main.swift
     # Phase 3: IPC services
     App/SecurityScopedResourceManager.swift
     App/MediaDeploymentService.swift
     App/SakuraPrefsWriter.swift
     # Phase 6: desktop sync
     App/DesktopSyncService.swift
+    # Phase 7: SwiftUI app UI (replaces AppKit AppDelegate + MainWindowController)
+    App/SakuraManager.swift
+    App/SakuraApp.swift
+    App/MenuBarView.swift
+    App/LibraryView.swift
+    App/RotationControlsView.swift
+    App/AboutView.swift
+    App/OnboardingView.swift
 )
 
 # ---------------------------------------------------------------------------
@@ -67,8 +66,9 @@ echo "Compiling app..."
 swiftc -o "$APP_DIR/Contents/MacOS/$APP_NAME" \
     "${CORE_SRCS[@]}" \
     "${APP_SRCS[@]}" \
-    -framework Cocoa -framework AVKit -framework AVFoundation \
-    -framework ServiceManagement -framework ImageIO -framework IOKit
+    -framework Cocoa -framework SwiftUI -framework AVKit -framework AVFoundation \
+    -framework ServiceManagement -framework ImageIO -framework IOKit \
+    -framework UniformTypeIdentifiers
 
 # Copy resources and icon
 cp -R App/Resources "$APP_DIR/Contents/"
