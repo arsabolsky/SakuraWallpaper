@@ -28,6 +28,8 @@ CORE_SRCS=(
     SakuraWallpaperCore/Sources/SakuraWallpaperCore/PathSafety.swift
     SakuraWallpaperCore/Sources/SakuraWallpaperCore/SakuraVariant.swift
     SakuraWallpaperCore/Sources/SakuraWallpaperCore/SakuraPrefsModel.swift
+    # Phase 9: playback policy moved to Core so unit tests can reach it
+    SakuraWallpaperCore/Sources/SakuraWallpaperCore/SakuraPlaybackPolicy.swift
 )
 
 # ---------------------------------------------------------------------------

@@ -23,7 +23,13 @@ let package = Package(
                 "Screen_Config.swift",
                 "SettingsManager.swift",
                 "MediaType.swift",
-                "PlaylistBuilder.swift"
+                "PlaylistBuilder.swift",
+                // Phase 3: shared path safety, variant type, and prefs model
+                "PathSafety.swift",
+                "SakuraVariant.swift",
+                "SakuraPrefsModel.swift",
+                // Phase 9: moved here so tests can reach it; extension adds SakuraPowerMonitor overload
+                "SakuraPlaybackPolicy.swift"
             ],
             linkerSettings: [
                 .linkedFramework("Cocoa"),
