@@ -48,6 +48,8 @@ APP_SRCS=(
     App/SecurityScopedResourceManager.swift
     App/MediaDeploymentService.swift
     App/SakuraPrefsWriter.swift
+    # Phase 6: desktop sync
+    App/DesktopSyncService.swift
 )
 
 # ---------------------------------------------------------------------------

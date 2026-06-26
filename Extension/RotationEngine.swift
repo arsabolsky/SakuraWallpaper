@@ -349,12 +349,37 @@ actor RotationEngine {
             extensionLog("[RotationEngine] applyEntry: no renderer found for display \(displayID.suffix(8))")
         }
 
-        // Notify the app that the displayed video changed.
+        // Write a JPEG snapshot of the current frame so the app-side DesktopSyncService
+        // can call NSWorkspace.setDesktopImageURL to keep the system desktop in sync.
+        // The extension is sandboxed and cannot call NSWorkspace directly — the JPEG in
+        // the container is the handshake point between extension and app.
+        let snapshotsDir = snapshotDirectory()
+        let snapshotPath = snapshotsDir?.appendingPathComponent("\(displayID)-current.jpg")
+        if let videoURL = SakuraLibrary.shared.videoURL(for: entryID),
+           let snapURL = snapshotPath {
+            Task.detached {
+                await writeJPEGSnapshot(videoURL: videoURL, to: snapURL)
+            }
+        }
+
+        // Notify the app that the displayed video changed (and the JPEG is being written).
         let center = CFNotificationCenterGetDarwinNotifyCenter()
         CFNotificationCenterPostNotification(
             center,
             CFNotificationName(SakuraNotification.stateChanged as CFString),
             nil, nil, true
         )
+    }
+
+    // MARK: - Snapshot directory
+
+    /// The snapshots directory inside the extension container.
+    /// Created on first access. The app reads from this path via the well-known container URL.
+    private func snapshotDirectory() -> URL? {
+        let docs = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Documents")
+        let dir = docs.appendingPathComponent("snapshots")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
     }
 }
