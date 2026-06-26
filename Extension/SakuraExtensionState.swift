@@ -128,6 +128,41 @@ final class SakuraExtensionState: Sendable {
         lock.withLock { $0.activeContexts.count }
     }
 
+    /// Replace the renderer inside an existing context after the async creation
+    /// Task completes. Called from the Task spawned in acquire() once the renderer
+    /// is ready — the context was stored with renderer=nil so reply() could be
+    /// called immediately without waiting for AVAssetReader setup.
+    func replaceRenderer(_ renderer: SakuraRenderer, contextId: UInt32) {
+        lock.withLock { state in
+            guard let existing = state.activeContexts[contextId] else { return }
+            state.activeContexts[contextId] = SakuraContext(
+                caContext: existing.caContext,
+                rootLayer: existing.rootLayer,
+                renderer: renderer,
+                displayID: existing.displayID,
+                videoID: existing.videoID
+            )
+        }
+    }
+
+    /// Return the context associated with a wallpaperID UUID string.
+    /// Used by update() and invalidate() to find the display-specific renderer.
+    func context(forWallpaperID wallpaperID: String) -> SakuraContext? {
+        lock.withLock { state in
+            guard let contextId = state.wallpaperIDToContext[wallpaperID] else { return nil }
+            return state.activeContexts[contextId]
+        }
+    }
+
+    /// Find the renderer for a given directDisplayID. Iterates all active contexts;
+    /// there are at most N displays so this linear scan is negligible.
+    /// Used by RotationEngine.applyEntry to update the variantSelector on each advance.
+    func renderer(forDisplayID displayID: UInt32) -> SakuraRenderer? {
+        lock.withLock { state in
+            state.activeContexts.values.first { $0.displayID == displayID }?.renderer
+        }
+    }
+
     // MARK: - Properties
 
     var cachedThumbnailURL: URL? {

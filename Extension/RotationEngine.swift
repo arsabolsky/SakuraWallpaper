@@ -309,23 +309,45 @@ actor RotationEngine {
         return all
     }
 
-    /// Apply an entry change to a display. In Phase 5 this will actually update the
-    /// renderer's variantSelector and trigger a media switch. For now it records the
-    /// selection in SakuraExtensionState.currentVideoID and posts a Darwin notification
-    /// so the app-side HistoryMenuSection can see the change.
+    /// Apply an entry change to a display. Updates the renderer's variantSelector so
+    /// the new video takes effect at the next gapless loop boundary (no forced flush).
     private func applyEntry(_ entryID: String?, toDisplay displayID: String) {
         guard let entryID else { return }
 
         // Update the global "current video" so snapshot and settings can read it.
         SakuraExtensionState.shared.currentVideoID = entryID
 
-        // TODO(Phase 5): look up the SakuraContext for this displayID via SakuraExtensionState,
-        //   get its renderer, and call:
-        //     renderer.variantSelector = { [weak lib = SakuraLibrary.shared] in
-        //         lib?.bestVariantURL(for: entryID, policy: SakuraPlaybackPolicy.current) ?? url
-        //     }
-        //   Then, if the current video is different, stop the renderer and restart it with
-        //   the new URL so the switch happens at the next loop boundary.
+        // Update the renderer's variantSelector. The renderer calls this closure at each
+        // loop boundary to decide which URL feeds the next AVAssetReader. By re-assigning
+        // the closure here, the switch takes effect seamlessly at the next loop without
+        // flushing or restarting the display layer.
+        if let did = UInt32(displayID),
+           let renderer = SakuraExtensionState.shared.renderer(forDisplayID: did) {
+            let nextEntryID = entryID
+            renderer.variantSelector = {
+                // Read policy fresh each loop so thermal/battery changes are reflected.
+                let state = SakuraPowerMonitor.shared.currentState
+                let policy = SakuraPlaybackPolicy.compute(
+                    presentationMode: SakuraExtensionState.shared.presentationMode,
+                    activityState: SakuraExtensionState.shared.activityState,
+                    userPaused: SakuraPrefsProvider.shared.userPaused,
+                    alwaysPauseDesktop: SakuraPrefsProvider.shared.alwaysPauseDesktop,
+                    pauseWhenOccluded: SakuraPrefsProvider.shared.pauseWhenOccluded,
+                    desktopOccluded: SakuraPrefsProvider.shared.desktopOccluded,
+                    thermalState: state.thermalState,
+                    isOnBattery: state.isOnBattery,
+                    batteryLevel: state.batteryLevel,
+                    isGameModeActive: state.isGameModeActive,
+                    displayBrightness: state.displayBrightness
+                )
+                // Fall back to the raw video URL if the entry has no variants at this policy.
+                return SakuraLibrary.shared.bestVariantURL(for: nextEntryID, policy: policy)
+                    ?? SakuraLibrary.shared.videoURL(for: nextEntryID)
+            }
+            extensionLog("[RotationEngine] variantSelector updated for display \(displayID.suffix(8)): → \(entryID.suffix(8))")
+        } else {
+            extensionLog("[RotationEngine] applyEntry: no renderer found for display \(displayID.suffix(8))")
+        }
 
         // Notify the app that the displayed video changed.
         let center = CFNotificationCenterGetDarwinNotifyCenter()

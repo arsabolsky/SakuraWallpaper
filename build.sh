@@ -119,7 +119,8 @@ if [ "${#EXT_SWIFT_SRCS[@]}" -gt 0 ]; then
         -framework ExtensionFoundation \
         -framework AVFoundation -framework CoreMedia \
         -framework IOKit -framework IOSurface \
-        -framework QuartzCore -framework Security
+        -framework QuartzCore -framework Security \
+        -framework CryptoKit
 
     # Copy the extension's Info.plist (registers com.apple.wallpaper extension point).
     cp Extension/Info.plist "$EXT_DIR/Contents/"
