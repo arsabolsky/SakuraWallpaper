@@ -156,6 +156,18 @@ final class SakuraManager: ObservableObject {
         return prefs.pausedDisplays?.contains(did) ?? false
     }
 
+    // MARK: - Launch at login
+
+    var isLaunchAtLoginEnabled: Bool {
+        LaunchAtLoginService.isEnabled
+    }
+
+    func toggleLaunchAtLogin() {
+        LaunchAtLoginService.toggle()
+        // Force the UI to re-read the new state.
+        objectWillChange.send()
+    }
+
     // MARK: - Next wallpaper
 
     /// Advance rotation for all displays immediately.

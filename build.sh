@@ -42,6 +42,8 @@ APP_SRCS=(
     # Phase 6: desktop sync
     App/DesktopSyncService.swift
     # Phase 7: SwiftUI app UI (replaces AppKit AppDelegate + MainWindowController)
+    # Phase 8: launch-at-login, history wiring, new screen policy
+    App/LaunchAtLoginService.swift
     App/SakuraManager.swift
     App/SakuraApp.swift
     App/MenuBarView.swift

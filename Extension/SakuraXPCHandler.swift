@@ -265,9 +265,18 @@ final class SakuraXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
             SakuraExtensionState.shared.replaceRenderer(renderer, contextId: capturedContextId)
 
             // Kick off rotation if the display has a rotation config in prefs.
+            // For a brand-new display (no config yet), apply the newScreenPolicy:
+            //   "blank"            — do nothing, leave entryID nil
+            //   "inheritSyncGroup" — copy the first synced display's current entry
             let prefs = SakuraPrefsProvider.shared.current
             if let config = prefs.perDisplayConfig[capturedDisplayUID] {
                 await RotationEngine.shared.startRotation(displayID: capturedDisplayUID, config: config)
+            } else if prefs.newScreenPolicy == "inheritSyncGroup" {
+                // Find the first other display that has an active entryID and copy it.
+                await RotationEngine.shared.provisionNewDisplay(
+                    displayID: capturedDisplayUID,
+                    inheritFrom: prefs
+                )
             }
 
             // Apply the current policy immediately (e.g. low battery, display dim).

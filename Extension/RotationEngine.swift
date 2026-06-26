@@ -204,6 +204,22 @@ actor RotationEngine {
         }
     }
 
+    // MARK: - New screen policy
+
+    /// Called when a new display connects and has no existing prefs entry.
+    /// "inheritSyncGroup" copies the first active display's current entryID so the
+    /// new screen isn't blank. "blank" is the default and requires no action.
+    func provisionNewDisplay(displayID: String, inheritFrom prefs: SakuraPrefs) {
+        // Find another display that is already showing something.
+        let otherEntryID = prefs.perDisplayConfig.values
+            .compactMap { $0.entryID }
+            .first
+        if let entryID = otherEntryID {
+            setExplicitMedia(displayID: displayID, entryID: entryID)
+            extensionLog("[RotationEngine] New display \(displayID.suffix(8)): inherited entry \(entryID.suffix(8))")
+        }
+    }
+
     // MARK: - Teardown
 
     func stopRotation(displayID: String) {

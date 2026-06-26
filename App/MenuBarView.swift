@@ -125,6 +125,14 @@ struct MenuBarView: View {
 
         Divider()
 
+        // Launch at login toggle — persists via SMAppService.
+        Toggle("ui.launchAtLogin".localized, isOn: Binding(
+            get: { manager.isLaunchAtLoginEnabled },
+            set: { _ in manager.toggleLaunchAtLogin() }
+        ))
+
+        Divider()
+
         Button("menu.about".localized) {
             manager.showAbout = true
         }
