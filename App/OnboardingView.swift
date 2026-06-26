@@ -77,7 +77,7 @@ struct OnboardingView: View {
         VStack(spacing: 16) {
             Image(systemName: "film.stack")
                 .font(.system(size: 40))
-                .foregroundStyle(.accentColor)
+                .foregroundStyle(Color.accentColor)
             Text("onboarding.step1.title".localized)
                 .font(.title3.bold())
             Text("onboarding.step1.message".localized)
@@ -105,7 +105,7 @@ struct OnboardingView: View {
         VStack(spacing: 16) {
             Image(systemName: "timer")
                 .font(.system(size: 40))
-                .foregroundStyle(.accentColor)
+                .foregroundStyle(Color.accentColor)
             Text("onboarding.step2.title".localized)
                 .font(.title3.bold())
             Text("onboarding.step2.message".localized)
@@ -119,7 +119,10 @@ struct OnboardingView: View {
                         intervalMinutes = mins
                         applyInterval()
                     }
-                    .buttonStyle(intervalMinutes == mins ? .borderedProminent : .bordered)
+                    // Can't ternary two concrete ButtonStyle types — use one style
+                    // and signal selection via tint instead.
+                    .buttonStyle(.bordered)
+                    .tint(intervalMinutes == mins ? Color.accentColor : nil)
                 }
             }
 
@@ -137,7 +140,7 @@ struct OnboardingView: View {
         VStack(spacing: 16) {
             Image(systemName: "desktopcomputer")
                 .font(.system(size: 40))
-                .foregroundStyle(.accentColor)
+                .foregroundStyle(Color.accentColor)
             Text("onboarding.step3.title".localized)
                 .font(.title3.bold())
             Text("onboarding.step3.message".localized)

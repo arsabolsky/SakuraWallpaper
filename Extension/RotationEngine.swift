@@ -338,7 +338,8 @@ actor RotationEngine {
         // the closure here, the switch takes effect seamlessly at the next loop without
         // flushing or restarting the display layer.
         if let did = UInt32(displayID),
-           let renderer = SakuraExtensionState.shared.renderer(forDisplayID: did) {
+           let renderer = SakuraExtensionState.shared.renderer(forDisplayID: did),
+           let baseURL = SakuraLibrary.shared.videoURL(for: entryID) {
             let nextEntryID = entryID
             renderer.variantSelector = {
                 // Read policy fresh each loop so thermal/battery changes are reflected.
@@ -356,9 +357,9 @@ actor RotationEngine {
                     isGameModeActive: state.isGameModeActive,
                     displayBrightness: state.displayBrightness
                 )
-                // Fall back to the raw video URL if the entry has no variants at this policy.
-                return SakuraLibrary.shared.bestVariantURL(for: nextEntryID, policy: policy)
-                    ?? SakuraLibrary.shared.videoURL(for: nextEntryID)
+                // Fall back to the raw video URL (guaranteed non-nil via the guard above)
+                // if the entry has no variants at this policy level.
+                return SakuraLibrary.shared.bestVariantURL(for: nextEntryID, policy: policy) ?? baseURL
             }
             extensionLog("[RotationEngine] variantSelector updated for display \(displayID.suffix(8)): → \(entryID.suffix(8))")
         } else {

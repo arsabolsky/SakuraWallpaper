@@ -58,16 +58,22 @@ final class DesktopSyncService {
 
         // Lock screen / screensaver: apply the snapshot just before the screen locks so
         // the lock screen wallpaper preview matches what the extension is rendering.
+        // The observer block is a plain (nonisolated) closure even though we pass
+        // queue: .main, so hop to the main actor explicitly before touching state.
         let distCenter = DistributedNotificationCenter.default()
         distCenter.addObserver(
             forName: NSNotification.Name("com.apple.screenIsLocked"),
             object: nil, queue: .main
-        ) { [weak self] _ in self?.applyAllDisplaySnapshots() }
+        ) { [weak self] _ in
+            Task { @MainActor in self?.applyAllDisplaySnapshots() }
+        }
 
         distCenter.addObserver(
             forName: NSNotification.Name("com.apple.screensaver.didstart"),
             object: nil, queue: .main
-        ) { [weak self] _ in self?.applyAllDisplaySnapshots() }
+        ) { [weak self] _ in
+            Task { @MainActor in self?.applyAllDisplaySnapshots() }
+        }
 
         log.info("DesktopSyncService started")
     }

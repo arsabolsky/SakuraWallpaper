@@ -29,7 +29,9 @@ let package = Package(
                 "SakuraVariant.swift",
                 "SakuraPrefsModel.swift",
                 // Phase 9: moved here so tests can reach it; extension adds SakuraPowerMonitor overload
-                "SakuraPlaybackPolicy.swift"
+                "SakuraPlaybackPolicy.swift",
+                // Shared Darwin notification names — referenced by both app and extension
+                "SakuraNotifications.swift"
             ],
             linkerSettings: [
                 .linkedFramework("Cocoa"),

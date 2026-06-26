@@ -30,6 +30,8 @@ CORE_SRCS=(
     SakuraWallpaperCore/Sources/SakuraWallpaperCore/SakuraPrefsModel.swift
     # Phase 9: playback policy moved to Core so unit tests can reach it
     SakuraWallpaperCore/Sources/SakuraWallpaperCore/SakuraPlaybackPolicy.swift
+    # Shared Darwin notification names — used by both app and extension
+    SakuraWallpaperCore/Sources/SakuraWallpaperCore/SakuraNotifications.swift
 )
 
 # ---------------------------------------------------------------------------

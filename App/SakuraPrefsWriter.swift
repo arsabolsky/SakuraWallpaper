@@ -70,9 +70,18 @@ enum SakuraPrefsWriter {
 
         var prefs = read() ?? SakuraPrefs()
 
-        for (displayUUID, config) in registry {
-            // Screens that were synced together in the old model become a sync group
-            // named after their display UUID. Phase 4 (RotationEngine) picks this up.
+        // The legacy Screen_Registry keyed displays as "screen_<directDisplayID>"
+        // (see SettingsManager.screenIdentifier). The live app and extension both key
+        // per-display config by the bare decimal directDisplayID ("<N>"), so we must
+        // strip the "screen_" prefix or every migrated config would be orphaned.
+        func normalizeDisplayKey(_ legacyKey: String) -> String {
+            legacyKey.hasPrefix("screen_")
+                ? String(legacyKey.dropFirst("screen_".count))
+                : legacyKey
+        }
+
+        for (legacyKey, config) in registry {
+            let displayKey = normalizeDisplayKey(legacyKey)
             var displayConfig = SakuraDisplayConfig()
             displayConfig.rotationIntervalMinutes = config.rotationIntervalMinutes
             displayConfig.isRotationEnabled       = config.isRotationEnabled
@@ -83,14 +92,15 @@ enum SakuraPrefsWriter {
             // wallpaperPath from the old config is a file URL; the extension library
             // uses UUIDs, so we can't populate entryID here. The user will re-select
             // their video via System Settings after the migration.
-            prefs.perDisplayConfig[displayUUID] = displayConfig
+            prefs.perDisplayConfig[displayKey] = displayConfig
 
             // isSynced = true in the old model means the display shares its rotation
             // timer with all other synced displays. Create a single sync group for all.
+            // Member displayIDs are normalized to the same bare-number form.
             if config.isSynced && !prefs.syncGroups.contains(where: { $0.groupID == "legacy-sync" }) {
                 prefs.syncGroups.append(SakuraSyncGroup(
                     groupID: "legacy-sync",
-                    displayIDs: registry.filter { $0.value.isSynced }.map { $0.key },
+                    displayIDs: registry.filter { $0.value.isSynced }.map { normalizeDisplayKey($0.key) },
                     rotationIntervalMinutes: config.rotationIntervalMinutes,
                     isShuffleMode: config.isShuffleMode
                 ))

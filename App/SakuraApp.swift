@@ -25,7 +25,9 @@ struct SakuraApp: App {
         // Status-bar icon + dropdown menu.
         // style: .menu means the icon acts as a normal menu bar item that shows a
         // SwiftUI view when clicked — matching the original NSMenu behaviour.
-        MenuBarExtra("SakuraWallpaper", image: "MenuBarIcon") {
+        // Uses an SF Symbol (always present) rather than a bundled asset so the
+        // menu bar item is guaranteed to be visible. The original app used a 🌸 emoji.
+        MenuBarExtra("SakuraWallpaper", systemImage: "camera.macro") {
             MenuBarView()
                 .environmentObject(appDelegate.manager)
         }
@@ -48,6 +50,10 @@ struct SakuraApp: App {
 
 /// Minimal NSApplicationDelegate. Holds the manager so both the @main App struct
 /// and any future AppKit callbacks can reach it without a global.
+/// @MainActor: SakuraManager is main-actor-isolated, so its initializer must be
+/// called on the main actor. NSApplicationDelegate callbacks already run on the
+/// main thread, so isolating the whole delegate is correct and avoids data races.
+@MainActor
 final class SakuraAppDelegate: NSObject, NSApplicationDelegate {
     // manager is created here (not in App.body) so it is alive before any scene renders.
     let manager = SakuraManager()
