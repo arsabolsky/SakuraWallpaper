@@ -164,12 +164,32 @@ EXTPLIST
 
     # Apply sandbox entitlements to the extension.
     # The extension must run sandboxed; the app does not.
+    # Signed FIRST (inside-out): the app signature below seals this .appex,
+    # so the extension must already be signed before the app is signed.
     codesign --force --sign - \
         --entitlements Extension/SakuraWallpaperExtension.entitlements \
         "$EXT_DIR"
 
     echo "Extension built: $EXT_DIR"
 fi
+
+# ---------------------------------------------------------------------------
+# Sign the whole app bundle LAST (inside-out signing).
+# Without this the app is only "linker-signed" (executable only) and the
+# embedded .appex is NOT sealed into the app's signature — WallpaperAgent then
+# registers the extension but refuses to drive its render lifecycle (acquire()
+# never fires). Signing the bundle here seals Contents/PlugIns/*.appex.
+# NOTE: ad-hoc (--sign -). A real wallpaper extension on macOS typically needs a
+# genuine "Apple Development" identity; ad-hoc may still be rejected for the full
+# render lifecycle. If so, build via Xcode with a signed-in Apple ID team instead.
+# ---------------------------------------------------------------------------
+codesign --force --sign - \
+    --entitlements App/SakuraWallpaper.entitlements \
+    "$APP_DIR"
+
+echo "Signed app bundle: $APP_DIR"
+echo "Verifying bundle signature..."
+codesign --verify --strict --verbose=2 "$APP_DIR" 2>&1 | sed 's/^/  /'
 
 echo "Done! App: $APP_DIR"
 
