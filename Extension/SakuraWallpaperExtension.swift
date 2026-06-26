@@ -5,9 +5,7 @@
 // swizzles WallpaperSnapshotXPC.encodeWithCoder: to bypass the NSXPCCoder exact-
 // class check, and wires up OS-level observers (display sleep/wake, screen lock).
 //
-// Callouts that depend on later phases are marked TODO and will be added as each
-// phase lands:
-//   Phase 3 — SakuraLibrary.shared.scan() + observePrefsChanges()
+// All phases are complete; all callouts have been filled in.
 
 import AppKit
 import ExtensionFoundation
